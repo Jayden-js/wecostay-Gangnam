@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WecoStay 강남점 | 업무 관리 포털</title>
+<meta name="description" content="WecoStay 강남점 업무 관리 포털 - 프로젝트·재고·구매·폐기 통합 관리">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🏨</div>
+    <h1>WecoStay 강남점</h1>
+    <p>업무 관리 포털</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">메인</div>
+    <div class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span><span>대시보드</span></div>
+    <div class="nav-section-label">업무 관리</div>
+    <div class="nav-item" data-section="projects"><span class="nav-icon">📁</span><span>프로젝트 관리</span></div>
+    <div class="nav-item" data-section="inventory"><span class="nav-icon">📦</span><span>재고 관리</span></div>
+    <div class="nav-item" data-section="purchases"><span class="nav-icon">🛒</span><span>비품 구매/관리</span></div>
+    <div class="nav-item" data-section="disposals"><span class="nav-icon">🗑️</span><span>폐기 관리</span></div>
+    <div class="nav-item" data-section="notices"><span class="nav-icon">📢</span><span>공지/숙지사항</span></div>
+    <div class="nav-section-label">분석</div>
+    <div class="nav-item" data-section="stats"><span class="nav-icon">📈</span><span>통계 분석</span></div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info" onclick="openMgrSelectOverlay()" style="cursor:pointer;" title="클릭하여 매니저 전환">
+      <div class="user-avatar" id="sidebar-mgr-av">관</div>
+      <div><div class="user-name" id="sidebar-mgr-name">관리자</div><div class="user-role">클릭하여 전환</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content">
+  <div class="topbar">
+    <div id="topbar-title" class="topbar-title">대시보드</div>
+    <div class="topbar-actions"><div id="topbar-date" style="font-size:12px;color:var(--text-muted)"></div></div>
+  </div>
+  <div class="page-content">
+
+    <!-- DASHBOARD -->
+    <section id="section-dashboard" class="section">
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-header"><div class="stat-icon blue">📁</div></div><div class="stat-value" id="stat-projects">0</div><div class="stat-label">진행 중 프로젝트</div></div>
+        <div class="stat-card purple"><div class="stat-header"><div class="stat-icon purple">📦</div></div><div class="stat-value" id="stat-inventory">0</div><div class="stat-label">재고 품목 수</div></div>
+        <div class="stat-card orange"><div class="stat-header"><div class="stat-icon orange">🛒</div></div><div class="stat-value" id="stat-purchases">0</div><div class="stat-label">대기 중 구매요청</div></div>
+        <div class="stat-card green"><div class="stat-header"><div class="stat-icon green">🗑️</div></div><div class="stat-value" id="stat-disposals">0</div><div class="stat-label">진행 중 폐기처리</div></div>
+        <div class="stat-card red"><div class="stat-header"><div class="stat-icon red">⚠️</div></div><div class="stat-value" id="stat-lowstock">0</div><div class="stat-label">재고 부족 품목</div></div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="activity-card">
+          <div class="activity-card-header">📁 최근 프로젝트<button class="btn btn-secondary btn-sm" onclick="navigate('projects')">전체보기</button></div>
+          <div class="activity-list" id="dash-projects"></div>
+        </div>
+        <div class="activity-card">
+          <div class="activity-card-header">🛒 최근 구매요청<button class="btn btn-secondary btn-sm" onclick="navigate('purchases')">전체보기</button></div>
+          <div class="activity-list" id="dash-purchases"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section id="section-projects" class="section">
+      <div class="section-header">
+        <div><div class="section-title">📁 프로젝트 목록 <span id="project-count" style="font-size:12px;color:var(--text-muted);font-weight:400"></span></div><div class="section-subtitle">프로젝트 진행 현황 관리</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="sort-btn" class="sort-btn" onclick="toggleProjSort()">📅 날짜 정렬</button>
+          <button class="btn btn-primary" onclick="openProjModal()">➕ 새 프로젝트</button>
+        </div>
+      </div>
+      <div class="filter-tabs" id="project-filters">
+        <div class="filter-tab active" data-filter="전체" onclick="setProjFilter('전체')">전체</div>
+        <div class="filter-tab" data-filter="계획중" onclick="setProjFilter('계획중')">📋 계획중</div>
+        <div class="filter-tab" data-filter="진행중" onclick="setProjFilter('진행중')">🔵 진행중</div>
+        <div class="filter-tab" data-filter="완료" onclick="setProjFilter('완료')">✅ 완료</div>
+        <div class="filter-tab" data-filter="보류" onclick="setProjFilter('보류')">⏸ 보류</div>
+      </div>
+      <div class="projects-grid" id="project-grid"></div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section id="section-inventory" class="section">
+      <div class="section-header">
+        <div><div class="section-title">📦 재고 현황 <span id="inventory-count" style="font-size:12px;color:var(--text-muted);font-weight:400"></span></div><div class="section-subtitle">재고 품목 현황 및 수량 관리</div></div>
+        <button class="btn btn-primary" onclick="openInvModal()">➕ 품목 추가</button>
+      </div>
+      <div class="filter-tabs" id="inv-cat-filters">
+        <div class="filter-tab active" data-cat="전체">전체</div>
+        <div class="filter-tab" data-cat="소모품">소모품</div>
+        <div class="filter-tab" data-cat="비품">비품</div>
+      </div>
+      <div class="table-container">
+        <div class="table-toolbar">
+          <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="inv-search" placeholder="품목명, 위치 검색..."></div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>품목명</th><th>분류</th><th>현재 재고</th><th>최소 재고</th><th>상태</th><th>보관 위치</th><th>단가</th><th>작업</th></tr></thead>
+            <tbody id="inventory-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PURCHASES -->
+    <section id="section-purchases" class="section">
+      <div class="section-header">
+        <div><div class="section-title">🛒 구매 요청 <span id="purchase-count" style="font-size:12px;color:var(--text-muted);font-weight:400"></span></div><div class="section-subtitle">비품 구매 요청 및 승인 관리</div></div>
+        <button class="btn btn-primary" onclick="openPurModal()">➕ 구매 요청</button>
+      </div>
+      <div class="filter-tabs" id="purchase-filters">
+        <div class="filter-tab active" data-filter="전체" onclick="setPurFilter('전체')">전체</div>
+        <div class="filter-tab" data-filter="검토중" onclick="setPurFilter('검토중')">🟡 검토중</div>
+        <div class="filter-tab" data-filter="승인" onclick="setPurFilter('승인')">✅ 승인</div>
+        <div class="filter-tab" data-filter="반려" onclick="setPurFilter('반려')">❌ 반려</div>
+        <div class="filter-tab" data-filter="완료" onclick="setPurFilter('완료')">🔵 완료</div>
+      </div>
+      <div class="table-container"><div class="table-scroll">
+        <table>
+          <thead><tr><th>요청 내용</th><th>요청자</th><th>분류</th><th>금액</th><th>상태</th><th>요청일</th><th>작업</th></tr></thead>
+          <tbody id="purchase-tbody"></tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <!-- DISPOSALS -->
+    <section id="section-disposals" class="section">
+      <div class="section-header">
+        <div><div class="section-title">🗑️ 폐기 관리 <span id="disposal-count" style="font-size:12px;color:var(--text-muted);font-weight:400"></span></div><div class="section-subtitle">비품 폐기 신청 및 처리 관리</div></div>
+        <button class="btn btn-primary" onclick="openDisModal()">➕ 폐기 신청</button>
+      </div>
+      <div class="filter-tabs" id="disposal-filters">
+        <div class="filter-tab active" data-filter="전체" onclick="setDisFilter('전체')">전체</div>
+        <div class="filter-tab" data-filter="대기" onclick="setDisFilter('대기')">🟡 대기</div>
+        <div class="filter-tab" data-filter="진행중" onclick="setDisFilter('진행중')">🔵 진행중</div>
+        <div class="filter-tab" data-filter="완료" onclick="setDisFilter('완료')">✅ 완료</div>
+        <div class="filter-tab" data-filter="취소" onclick="setDisFilter('취소')">❌ 취소</div>
+      </div>
+      <div class="table-container"><div class="table-scroll">
+        <table>
+          <thead><tr><th>폐기 품목</th><th>유형</th><th>분류</th><th>수량</th><th>폐기 사유</th><th>신청자</th><th>상태</th><th>신청일</th><th>작업</th></tr></thead>
+          <tbody id="disposal-tbody"></tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <!-- STATISTICS -->
+    <section id="section-stats" class="section">
+      <div class="section-header">
+        <div><div class="section-title">📈 통계 분석</div><div class="section-subtitle">재고·구매·폐기 현황을 한눈에</div></div>
+      </div>
+      <div class="stats-module-tabs">
+        <div class="stats-mod-tab active" data-mod="inventory" onclick="setStatsMod('inventory')">📦 재고 현황</div>
+        <div class="stats-mod-tab" data-mod="purchases" onclick="setStatsMod('purchases')">🛒 구매 현황</div>
+        <div class="stats-mod-tab" data-mod="disposals" onclick="setStatsMod('disposals')">🗑️ 폐기 현황</div>
+      </div>
+      <div class="stats-summary-row" id="stats-sum-row"></div>
+      <div class="time-period-bar">
+        <span>기간 단위:</span>
+        <div class="time-tab active" data-period="weekly" onclick="setStatsPeriod('weekly')">주별</div>
+        <div class="time-tab" data-period="monthly" onclick="setStatsPeriod('monthly')">월별</div>
+        <div class="time-tab" data-period="quarterly" onclick="setStatsPeriod('quarterly')">분기별</div>
+        <div class="time-tab" data-period="yearly" onclick="setStatsPeriod('yearly')">연도별</div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-card-title" id="chart-main-title">현황 차트</div>
+          <div class="chart-canvas-wrap"><canvas id="chart-main"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">분포 차트</div>
+          <div class="chart-canvas-wrap"><canvas id="chart-sub"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTICES -->
+    <section id="section-notices" class="section">
+      <div class="section-header">
+        <div><div class="section-title">📢 공지/숙지사항 <span id="notice-count" style="font-size:12px;color:var(--text-muted);font-weight:400"></span></div><div class="section-subtitle">매니저 읽음 확인 포함</div></div>
+        <button class="btn btn-primary" onclick="openNoticeModal()">➕ 공지 작성</button>
+      </div>
+      <div class="cur-mgr-bar" id="cur-mgr-bar"></div>
+      <div class="filter-tabs" id="notice-filters">
+        <div class="filter-tab active" data-filter="전체" onclick="setNoticeFilter('전체')">전체</div>
+        <div class="filter-tab" data-filter="공지사항" onclick="setNoticeFilter('공지사항')">📢 공지사항</div>
+        <div class="filter-tab" data-filter="숙지사항" onclick="setNoticeFilter('숙지사항')">📌 숙지사항</div>
+      </div>
+      <div class="notice-cards" id="notice-cards"></div>
+    </section>
+
+  </div><!-- /page-content -->
+</div><!-- /main-content -->
+
+<!-- PROJECT MODAL -->
+<div class="modal-overlay" id="project-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="proj-modal-title">새 프로젝트 추가</span>
+      <button class="modal-close" onclick="closeModal('project-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="proj-form">
+        <input type="hidden" id="proj-edit-id">
+        <div class="form-group"><label class="form-label">프로젝트명 *</label><input type="text" id="proj-name" class="form-control" placeholder="프로젝트명"></div>
+        <div class="form-group">
+          <label class="form-label">설명 (서식 편집 지원)</label>
+          <div class="rte-container" id="rte-proj-wrap">
+            <div class="rte-toolbar">
+              <button type="button" class="rte-btn" data-cmd="bold" title="굵게"><b>B</b></button>
+              <button type="button" class="rte-btn" data-cmd="italic" title="기울이기"><i>I</i></button>
+              <button type="button" class="rte-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button>
+              <div class="rte-divider"></div>
+              <label class="rte-color-label" title="글씨 색상"><span style="color:#e8eaf6;font-weight:700;font-size:11px">A</span><input type="color" class="rte-color-input" data-cmd="foreColor" value="#4f8ef7"></label>
+              <label class="rte-color-label" title="배경색"><span style="background:#f59e0b;color:#000;font-weight:700;font-size:11px;padding:0 2px">A</span><input type="color" class="rte-color-input" data-cmd="backColor" value="#f59e0b"></label>
+            </div>
+            <div class="rte-editor" id="rte-proj-desc" contenteditable="true" data-placeholder="프로젝트 설명을 입력하세요..."></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">상태</label><select id="proj-status" class="form-control"><option>계획중</option><option>진행중</option><option>완료</option><option>보류</option></select></div>
+          <div class="form-group"><label class="form-label">우선순위</label><select id="proj-priority" class="form-control"><option>낮음</option><option>중간</option><option>높음</option><option>긴급</option></select></div>
+        </div>
+        <div class="form-group"><label class="form-label">담당자</label><input type="text" id="proj-manager" class="form-control" placeholder="담당자 이름"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">시작일</label><input type="date" id="proj-start" class="form-control"></div>
+          <div class="form-group"><label class="form-label">종료일</label><input type="date" id="proj-end" class="form-control"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">총 작업 수</label><input type="number" id="proj-tasks" class="form-control" placeholder="0" min="0"></div>
+          <div class="form-group"><label class="form-label">완료 작업 수</label><input type="number" id="proj-done-tasks" class="form-control" placeholder="0" min="0"></div>
+        </div>
+        <div class="form-group"><label class="form-label">진행률 (%)</label><input type="number" id="proj-progress" class="form-control" placeholder="0" min="0" max="100"></div>
+        <div class="form-group">
+          <label class="form-label">📎 사진/동영상 첨부 (파일당 3MB 이하)</label>
+          <div class="file-attach-zone" id="proj-file-zone">
+            <input type="file" accept="image/*,video/*" multiple>
+            <div>📁 클릭하거나 파일을 드래그하세요</div>
+            <div class="attach-hint">이미지 또는 동영상 파일 (각 3MB 이하)</div>
+          </div>
+          <div class="attach-previews" id="proj-previews"></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('project-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveProject()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY MODAL -->
+<div class="modal-overlay" id="inventory-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="inv-modal-title">재고 품목 추가</span>
+      <button class="modal-close" onclick="closeModal('inventory-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="inv-form">
+        <input type="hidden" id="inv-edit-id">
+        <div class="form-group"><label class="form-label">품목명 *</label><input type="text" id="inv-name" class="form-control" placeholder="품목명"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">분류</label><select id="inv-category" class="form-control"><option value="소모품">소모품</option><option value="비품">비품</option></select></div>
+          <div class="form-group"><label class="form-label">단위</label><input type="text" id="inv-unit" class="form-control" placeholder="예: 개, 박스, 대"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">현재 수량</label><input type="number" id="inv-qty" class="form-control" placeholder="0" min="0"></div>
+          <div class="form-group"><label class="form-label">최소 재고 수량</label><input type="number" id="inv-min-qty" class="form-control" placeholder="0" min="0"></div>
+        </div>
+        <div class="form-group"><label class="form-label">보관 위치</label><input type="text" id="inv-location" class="form-control" placeholder="보관 위치"></div>
+        <div class="form-group"><label class="form-label">단가 (원)</label><input type="number" id="inv-price" class="form-control" placeholder="0" min="0"></div>
+        <div class="form-group"><label class="form-label">메모</label><textarea id="inv-note" class="form-control" placeholder="비고사항"></textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('inventory-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveInventory()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- PURCHASE MODAL -->
+<div class="modal-overlay" id="purchase-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="pur-modal-title">새 구매 요청</span>
+      <button class="modal-close" onclick="closeModal('purchase-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="pur-form">
+        <input type="hidden" id="pur-edit-id">
+        <div class="form-group"><label class="form-label">요청 품목/내용 *</label><input type="text" id="pur-title" class="form-control" placeholder="구매 요청 내용"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">요청 부서</label><input type="text" id="pur-dept" class="form-control" placeholder="부서명"></div>
+          <div class="form-group"><label class="form-label">요청자</label><input type="text" id="pur-requester" class="form-control" placeholder="요청자명"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">요청 금액 (원)</label><input type="number" id="pur-amount" class="form-control" placeholder="0" min="0"></div>
+          <div class="form-group"><label class="form-label">분류</label><select id="pur-category" class="form-control"><option value="소모품">소모품</option><option value="비품">비품</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">상태</label><select id="pur-status" class="form-control"><option>검토중</option><option>승인</option><option>반려</option><option>완료</option></select></div>
+          <div class="form-group"><label class="form-label">요청일</label><input type="date" id="pur-date" class="form-control"></div>
+        </div>
+        <div class="form-group"><label class="form-label">비고</label><textarea id="pur-note" class="form-control" placeholder="추가 사항"></textarea></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('purchase-modal')">취소</button>
+      <button class="btn btn-primary" onclick="savePurchase()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISPOSAL MODAL -->
+<div class="modal-overlay" id="disposal-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="dis-modal-title">폐기 신청</span>
+      <button class="modal-close" onclick="closeModal('disposal-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="dis-type" value="일반폐기">
+      <div class="disposal-type-tabs">
+        <div class="disposal-type-tab active" data-type="일반폐기" onclick="setDisModalType('일반폐기')">🗑️ 일반 폐기</div>
+        <div class="disposal-type-tab" data-type="빼기폐기" onclick="setDisModalType('빼기폐기')">➖ 빼기 폐기</div>
+      </div>
+      <form id="dis-form">
+        <input type="hidden" id="dis-edit-id">
+        <div class="form-group"><label class="form-label">폐기 품목명 *</label><input type="text" id="dis-name" class="form-control" placeholder="폐기할 품목명"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">분류</label><select id="dis-category" class="form-control"><option value="비품">비품</option><option value="소모품">소모품</option></select></div>
+          <div class="form-group"><label class="form-label">수량</label><input type="number" id="dis-qty" class="form-control" placeholder="1" min="1" value="1"></div>
+        </div>
+        <div class="form-group"><label class="form-label">단위</label><input type="text" id="dis-unit" class="form-control" placeholder="예: 개, 대, 박스"></div>
+        <div class="form-group"><label class="form-label">폐기 사유</label><textarea id="dis-reason" class="form-control" placeholder="폐기 사유를 입력하세요"></textarea></div>
+        <div class="form-group"><label class="form-label">처리 방법</label><input type="text" id="dis-method" class="form-control" placeholder="예: 공인업체 폐기, 구청 대형폐기물 신고"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">신청 부서</label><input type="text" id="dis-dept" class="form-control" placeholder="부서명"></div>
+          <div class="form-group"><label class="form-label">신청자</label><input type="text" id="dis-requester" class="form-control" placeholder="신청자명"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">상태</label><select id="dis-status" class="form-control"><option>대기</option><option>진행중</option><option>완료</option><option>취소</option></select></div>
+          <div class="form-group"><label class="form-label">신청일</label><input type="date" id="dis-date" class="form-control"></div>
+        </div>
+        <div class="form-group"><label class="form-label">비고</label><textarea id="dis-note" class="form-control" placeholder="추가 사항"></textarea></div>
+        <div class="form-group">
+          <label class="form-label">📎 사진/동영상 첨부 (파일당 3MB 이하)</label>
+          <div class="file-attach-zone" id="dis-file-zone">
+            <input type="file" accept="image/*,video/*" multiple>
+            <div>📁 클릭하거나 파일을 드래그하세요</div>
+            <div class="attach-hint">이미지 또는 동영상 파일 (각 3MB 이하)</div>
+          </div>
+          <div class="attach-previews" id="dis-previews"></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('disposal-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveDisposal()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTICE MODAL -->
+<div class="modal-overlay" id="notice-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="notice-modal-title">새 공지사항 작성</span>
+      <button class="modal-close" onclick="closeModal('notice-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="notice-form">
+        <input type="hidden" id="notice-edit-id">
+        <div class="form-group"><label class="form-label">제목 *</label><input type="text" id="notice-title-input" class="form-control" placeholder="공지사항 제목"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">분류</label><select id="notice-category" class="form-control"><option value="공지사항">📢 공지사항</option><option value="숙지사항">📌 숙지사항</option></select></div>
+          <div class="form-group"><label class="form-label">우선순위</label><select id="notice-priority" class="form-control"><option value="일반">일반</option><option value="중요">중요</option><option value="긴급">🔥 긴급</option></select></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">내용 (서식 편집 지원)</label>
+          <div class="rte-container" id="notice-rte-wrap">
+            <div class="rte-toolbar">
+              <button type="button" class="rte-btn" data-cmd="bold" title="굵게"><b>B</b></button>
+              <button type="button" class="rte-btn" data-cmd="italic" title="기울이기"><i>I</i></button>
+              <button type="button" class="rte-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button>
+              <div class="rte-divider"></div>
+              <label class="rte-color-label" title="글씨 색상"><span style="color:#e8eaf6;font-weight:700;font-size:11px">A</span><input type="color" class="rte-color-input" data-cmd="foreColor" value="#4f8ef7"></label>
+              <label class="rte-color-label" title="배경색"><span style="background:#f59e0b;color:#000;font-weight:700;font-size:11px;padding:0 2px">A</span><input type="color" class="rte-color-input" data-cmd="backColor" value="#f59e0b"></label>
+            </div>
+            <div class="rte-editor" id="rte-notice-content" contenteditable="true" data-placeholder="공지사항 내용을 입력하세요..."></div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('notice-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveNotice()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGER MODAL -->
+<div class="modal-overlay" id="manager-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">⚙ 매니저 관리</span>
+      <button class="modal-close" onclick="closeModal('manager-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">새 매니저 추가</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="new-mgr-name" class="form-control" placeholder="이름 입력" style="flex:1">
+          <button class="btn btn-primary" onclick="addMgr()">➕ 추가</button>
+        </div>
+      </div>
+      <div class="form-label" style="margin-bottom:10px">등록된 매니저 목록</div>
+      <div class="mgr-list" id="mgr-modal-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('manager-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGER SELECT OVERLAY -->
+<div class="mgr-select-overlay" id="mgr-select-overlay">
+  <div class="mgr-select-box">
+    <div class="mgr-select-title">👤 사용자(매니저) 선택</div>
+    <div class="mgr-select-list" id="mgr-select-list"></div>
+    <div style="margin-top:14px;display:flex;justify-content:center">
+      <button class="btn btn-secondary" onclick="closeMgrSelectOverlay()">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-title" id="confirm-title">확인</div>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" id="confirm-cancel">취소</button>
+      <button class="btn btn-danger" id="confirm-ok">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox-overlay" id="lightbox-overlay">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <div id="lightbox-content"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
+
