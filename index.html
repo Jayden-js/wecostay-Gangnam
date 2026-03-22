@@ -29,10 +29,24 @@
       <div class="nav-item" data-section="rentals"><span class="nav-icon">🔑</span><span>비품 대여</span></div>
       <div class="nav-item" data-section="disposals"><span class="nav-icon">🗑️</span><span>폐기 관리</span></div>
       <div class="nav-item" data-section="notices"><span class="nav-icon">📢</span><span>공지/숙지사항</span></div>
-      <!-- 👇 추가된 주차 등록 -->
-      <div class="nav-item" data-section="parking"><span class="nav-icon">🚗</span><span>주차 등록</span></div>
+      <div class="nav-item" data-section="parking">
+        🚗<span>주차 등록</span>
+      </div>
       <div class="nav-section-label">분석</div>
       <div class="nav-item" data-section="stats"><span class="nav-icon">📈</span><span>통계 분석</span></div>
+
+      <!-- 업무(워크스페이스) 리스트 -->
+      <div class="nav-section-label">업무</div>
+      <div id="workspace-list"></div>
+
+
+
+
+      <div id="workspace-new" class="workspace-new-btn" onclick="createNewWorkspace()">
+        <span class="workspace-new-inner">
+          + 새 업무 생성
+        </span>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <div class="user-info" onclick="openMgrSelectOverlay()" style="cursor:pointer;" title="클릭하여 매니저 전환">
@@ -49,10 +63,14 @@
   <!-- MAIN -->
   <div class="main-content">
     <div class="topbar">
-      <div id="topbar-title" class="topbar-title">대시보드</div>
-      <div class="topbar-actions">
-        <div id="topbar-date" style="font-size:12px;color:var(--text-muted)"></div>
+      <div class="topbar-left">
+        <div id="topbar-title" class="topbar-title"></div>
       </div>
+      <div class="topbar-actions">
+
+        <div id="topbar-date" style="font-size:12px;color:var(--text-muted);margin-left:8px"></div>
+      </div>
+
     </div>
     <div class="page-content">
 
@@ -121,7 +139,9 @@
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button id="sort-btn" class="sort-btn" onclick="toggleProjSort()">📅 날짜 정렬</button>
-            <button class="btn btn-primary" onclick="openProjModal()">➕ 새 프로젝트</button>
+            <button class="btn btn-primary btn-sm" onclick="openProjModal()">
+              + 새 프로젝트
+            </button>
           </div>
         </div>
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:12px">
@@ -455,28 +475,66 @@
 
       <!-- NOTICES -->
       <section id="section-notices" class="section">
+        <!-- 상단 타이틀 + 공지 작성 버튼 -->
         <div class="section-header">
           <div>
-            <div class="section-title">📢 공지/숙지사항 <span id="notice-count"
-                style="font-size:12px;color:var(--text-muted);font-weight:400"></span></div>
+            <div class="section-title">
+              📢 공지/숙지사항
+              <span id="notice-count" style="font-size:12px;color:var(--text-muted);font-weight:400"></span>
+            </div>
             <div class="section-subtitle">매니저 읽음 확인 포함</div>
           </div>
-          <button id="notice-add-btn" class="btn btn-primary" onclick="openNoticeModal()">➕ 공지 작성</button>
+          <button id="notice-add-btn" class="btn btn-primary" onclick="openNoticeModal()">
+            + 공지 작성
+          </button>
         </div>
-        <div class="cur-mgr-bar" id="cur-mgr-bar"></div>
+
+        <!-- 현재 사용자 바 (이미지와 같은 형태) -->
+        <div class="cur-mgr-bar" id="cur-mgr-bar">
+          <div class="cur-mgr-left">
+            <div class="mgr-avatar" id="sidebar-mgr-av"></div>
+
+            <div class="mgr-info">
+              <div class="mgr-name">
+                <span id="sidebar-mgr-name"></span>
+                <span class="badge badge-purple mgr-role-badge"></span>
+              </div>
+              <div class="mgr-subtext">현재 사용자</div>
+            </div>
+          </div>
+          <div class="cur-mgr-actions">
+            <button class="btn btn-secondary btn-sm" onclick="openMgrSelectOverlay()">변경</button>
+            <button class="btn btn-warning btn-sm" onclick="clearCurrentMgr()">해제</button>
+            <button class="btn btn-secondary btn-sm" onclick="openMgrModal()">⚙ 매니저 관리</button>
+          </div>
+        </div>
+
+        <!-- 하단 탭 / 월 폴더 / 검색 -->
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:12px">
           <div class="filter-tabs" id="notice-filters" style="margin-bottom:0">
             <div class="filter-tab active" data-filter="전체" onclick="setNoticeFilter('전체')">전체</div>
             <div class="filter-tab" data-filter="공지사항" onclick="setNoticeFilter('공지사항')">📢 공지사항</div>
             <div class="filter-tab" data-filter="숙지사항" onclick="setNoticeFilter('숙지사항')">📌 숙지사항</div>
           </div>
+
           <div id="notice-month-bar" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
+
+          <div style="margin-left:auto;">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="notice-search" placeholder="제목·내용 검색..."
+                oninput="noticeSearch=this.value;renderNotices()">
+            </div>
+          </div>
         </div>
+
+        <!-- 공지 카드 리스트 -->
         <div class="notice-cards" id="notice-cards"></div>
       </section>
 
+
       <!-- PARKING -->
-      <section id="section-parking" class="section" style="display:none;">
+      <section id="section-parking" class="section">
         <div class="section-header">
           <div>
             <div class="section-title">🚗 주차 등록</div>
@@ -598,6 +656,58 @@
       </div>
     </div>
   </div>
+
+  <!-- PROJECT DETAIL MODAL -->
+  <div class="modal-overlay" id="project-detail-modal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <span class="modal-title" id="proj-detail-title">프로젝트 상세</span>
+        <button class="modal-close" onclick="closeModal('project-detail-modal')">✖</button>
+      </div>
+      <div class="modal-body">
+        <!-- 상단 속성 요약 -->
+        <div class="proj-detail-header">
+          <div>
+            <div class="proj-detail-name" id="proj-detail-name"></div>
+            <div class="proj-detail-sub">
+              <span id="proj-detail-status"></span>
+              <span id="proj-detail-priority"></span>
+            </div>
+          </div>
+          <div class="proj-detail-meta">
+            <div>담당자: <span id="proj-detail-manager"></span></div>
+            <div>기간: <span id="proj-detail-dates"></span></div>
+            <div>진행률: <span id="proj-detail-progress"></span></div>
+          </div>
+        </div>
+
+        <!-- 설명 (RTE 내용 보기용) -->
+        <div class="proj-detail-section">
+          <div class="proj-detail-label">설명</div>
+          <div class="proj-detail-desc" id="proj-detail-desc"></div>
+        </div>
+
+        <!-- 태스크/진행 -->
+        <div class="proj-detail-section">
+          <div class="proj-detail-label">태스크</div>
+          <div class="proj-detail-tasks">
+            <span id="proj-detail-tasks"></span>
+          </div>
+        </div>
+
+        <!-- 첨부파일 -->
+        <div class="proj-detail-section">
+          <div class="proj-detail-label">첨부파일</div>
+          <div id="proj-detail-attachments"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="openProjModal(currentDetailProjectId)">수정</button>
+        <button class="btn btn-primary" onclick="closeModal('project-detail-modal')">닫기</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- INVENTORY MODAL -->
   <div class="modal-overlay" id="inventory-modal">
@@ -761,24 +871,43 @@
         <span class="modal-title" id="notice-modal-title">새 공지사항 작성</span>
         <button class="modal-close" onclick="closeModal('notice-modal')">✕</button>
       </div>
+
       <div class="modal-body">
         <form id="notice-form">
           <input type="hidden" id="notice-edit-id">
-          <div class="form-group"><label class="form-label">제목 *</label><input type="text" id="notice-title-input"
-              class="form-control" placeholder="공지사항 제목"></div>
+
+          <!-- 제목 -->
+          <div class="form-group">
+            <label class="form-label">제목 *</label>
+            <input type="text" id="notice-title" class="form-control" placeholder="공지사항 제목">
+          </div>
+
+          <!-- 담당 매니저 / 분류 / 우선순위 -->
           <div class="form-row">
-            <div class="form-group"><label class="form-label">분류</label><select id="notice-category"
-                class="form-control">
+            <div class="form-group">
+              <label>담당 매니저</label>
+              <input id="notice-manager" class="form-control" placeholder="예: 김철수">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">분류</label>
+              <select id="notice-category" class="form-control">
                 <option value="공지사항">📢 공지사항</option>
                 <option value="숙지사항">📌 숙지사항</option>
-              </select></div>
-            <div class="form-group"><label class="form-label">우선순위</label><select id="notice-priority"
-                class="form-control">
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">우선순위</label>
+              <select id="notice-priority" class="form-control">
                 <option value="일반">일반</option>
                 <option value="중요">중요</option>
                 <option value="긴급">🔥 긴급</option>
-              </select></div>
+              </select>
+            </div>
           </div>
+
+          <!-- 내용 (RTE) -->
           <div class="form-group">
             <label class="form-label">내용 (서식 편집 지원)</label>
             <div class="rte-container" id="notice-rte-wrap">
@@ -790,26 +919,33 @@
                 <button type="button" class="rte-btn rte-color-btn" data-cmd="foreColor" title="글씨 색상"
                   onclick="toggleColorPalette(this, 'foreColor')">
                   <span
-                    style="font-weight:700;font-size:11px;color:#e8eaf6;border-bottom:3px solid #4f8ef7;padding-bottom:1px">A</span>
+                    style="font-weight:700;font-size:11px;color:#e8eaf6;border-bottom:3px solid #4f8ef7;padding-bottom:1px">
+                    A
+                  </span>
                 </button>
                 <button type="button" class="rte-btn rte-color-btn" data-cmd="backColor" title="배경색"
                   onclick="toggleColorPalette(this, 'backColor')">
-                  <span style="font-weight:700;font-size:11px;color:#111;background:#f59e0b;padding:0 3px">A</span>
+                  <span style="font-weight:700;font-size:11px;color:#111;background:#f59e0b;padding:0 3px">
+                    A
+                  </span>
                 </button>
               </div>
 
               <div class="rte-editor" id="rte-notice-content" contenteditable="true"
-                data-placeholder="공지사항 내용을 입력하세요..."></div>
+                data-placeholder="공지사항 내용을 입력하세요...">
+              </div>
             </div>
           </div>
         </form>
       </div>
+
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('notice-modal')">취소</button>
         <button class="btn btn-primary" onclick="saveNotice()">💾 저장</button>
       </div>
     </div>
   </div>
+
 
   <!-- MANAGER MODAL -->
   <div class="modal-overlay" id="manager-modal">
@@ -869,6 +1005,9 @@
   <div class="toast-container" id="toast-container"></div>
 
   <script src="app.js"></script>
+
+
+
 </body>
 
 </html>

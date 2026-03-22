@@ -274,7 +274,7 @@ body {
 }
 
 .section {
-  display: none
+  display: none;
 }
 
 .section.active {
@@ -2177,4 +2177,185 @@ tr.inline-editing input[type="date"].form-control {
 .rte-palette-none:hover {
   background: rgba(255, 255, 255, 0.06);
   color: #e8eaf6;
+}
+
+.tooltip-mini {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s ease-out;
+  z-index: 50;
+}
+
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tooltip-wrap:hover .tooltip-mini {
+  opacity: 1;
+}
+
+#workspace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.workspace-item {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workspace-item.active {
+  background: rgba(79, 142, 247, .18);
+  color: var(--accent-blue);
+}
+
+.workspace-item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-new-btn {
+  margin-top: 6px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, .18);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.workspace-new-inner {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: #e8eaf6;
+  font-size: 12px;
+  text-align: center;
+  padding: 6px 4px;
+}
+
+.workspace-new-btn:hover .workspace-new-inner {
+  border-color: #ffffff;
+  background: rgba(0, 0, 0, .35);
+}
+
+
+
+/* ===== PROJECT DETAIL PAGE ===== */
+.proj-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.proj-detail-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.proj-detail-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.proj-detail-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.proj-detail-section {
+  margin-top: 14px;
+}
+
+.proj-detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.proj-detail-desc {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.proj-detail-tasks {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .proj-detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .proj-detail-meta {
+    text-align: left;
+    align-items: flex-start;
+  }
+}
+
+.workspace-item {
+  position: relative;
+  /* 기존 속성 그대로 유지 */
+}
+
+.workspace-delete {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 0 2px 4px;
+}
+
+.workspace-delete:hover {
+  color: #f87171;
+}
+
+.mgr-subtext {
+  font-size: 11px;
+  color: #888888;
+  /* 회색 */
 }

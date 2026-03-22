@@ -1,12 +1,54 @@
 // ===== DB =====
 const DB = {
-  get(k) { try { return JSON.parse(localStorage.getItem('biz_' + k)) || []; } catch (e) { return []; } },
-  set(k, d) { localStorage.setItem('biz_' + k, JSON.stringify(d)); },
-  genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  get(k) {
+    try {
+      return JSON.parse(localStorage.getItem('biz_' + k)) || [];
+    } catch (e) {
+      return [];
+    }
+  },
+  set(k, d) {
+    localStorage.setItem('biz_' + k, JSON.stringify(d));
+  },
+  genId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
 };
 
+// ===== WORKSPACES =====
+function getWorkspaces() {
+  return DB.get('workspaces') || [];
+}
+function saveWorkspaces(list) {
+  DB.set('workspaces', list);
+}
+function getCurrentWorkspaceId() {
+  return localStorage.getItem('biz_cur_workspace') || '';
+}
+function setCurrentWorkspaceId(id) {
+  if (id) localStorage.setItem('biz_cur_workspace', id);
+  else localStorage.removeItem('biz_cur_workspace');
+}
+function getCurrentWorkspace() {
+  const id = getCurrentWorkspaceId();
+  if (!id) return null;
+  return getWorkspaces().find(ws => ws.id === id) || null;
+}
+
+
 // ===== KST DATE =====
-function getTodayKST() { return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0]; }
+function getTodayKST() {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+}
+// ===== DATE HELPERS: MONTH KEY =====
+function getMonthKey(dtStr) {
+  if (!dtStr) return '';
+  // "2026-03-23" 또는 "2026-03-23 10:00" 형식이라고 가정
+  return dtStr.slice(0, 7); // "2026-03"
+}
+
 
 // ===== AUTO TRANSITION =====
 function checkAutoTransition() {
@@ -23,7 +65,26 @@ function checkAutoTransition() {
 
 // ===== SEED =====
 function seedData() {
+  // 워크스페이스 기본 생성
+  let wss = getWorkspaces();
+  if (!wss.length) {
+    const id = DB.genId();
+    wss = [{
+      id,
+      name: '기본 업무',
+      icon: '📁',
+      subtitle: '전체 업무 현황',
+      defaultSection: 'dashboard'
+    }];
+
+    saveWorkspaces(wss);
+    setCurrentWorkspaceId(id);
+  } else if (!getCurrentWorkspaceId()) {
+    setCurrentWorkspaceId(wss[0].id);
+  }
+
   if (localStorage.getItem('biz_seeded2')) return;
+  const wsId = getCurrentWorkspaceId() || 'default';
   DB.set('projects', [
     { id: DB.genId(), name: '2025 객실 리노베이션', desc: '<b>강남점</b> 객실 환경 개선 프로젝트', status: '진행중', priority: '높음', manager: '김철수', startDate: '2025-01-10', endDate: '2025-06-30', progress: 65, tasks: 12, doneTasks: 8, attachments: [] },
     { id: DB.genId(), name: 'ERP 시스템 도입', desc: '전사 ERP 구축 및 도입', status: '계획중', priority: '긴급', manager: '이영희', startDate: '2025-03-01', endDate: '2025-12-31', progress: 20, tasks: 25, doneTasks: 5, attachments: [] },
@@ -38,13 +99,13 @@ function seedData() {
   ]);
   const today = new Date(), ms = 864e5;
   DB.set('purchases', [
-    { id: DB.genId(), title: 'A4 복사용지 20박스', dept: '총무팀', requester: '이민수', amount: 640000, category: '소모품', status: '승인', requestDate: fmtDate(new Date(today - 30 * ms)), note: '긴급 요청' },
-    { id: DB.genId(), title: '무선 키보드/마우스 10개', dept: 'IT팀', requester: '김지원', amount: 450000, category: '비품', status: '검토중', requestDate: fmtDate(new Date(today - 10 * ms)), note: '재택근무 지원' },
-    { id: DB.genId(), title: '탕비실 커피머신 교체', dept: '총무팀', requester: '박소연', amount: 380000, category: '비품', status: '반려', requestDate: fmtDate(new Date(today - 45 * ms)), note: '기존 기기 수리 우선' },
-    { id: DB.genId(), title: '청소 용품 세트', dept: '총무팀', requester: '최하나', amount: 120000, category: '소모품', status: '완료', requestDate: fmtDate(new Date(today - 60 * ms)), note: '' },
-    { id: DB.genId(), title: '프로젝터 스크린', dept: '교육팀', requester: '윤대호', amount: 850000, category: '비품', status: '승인', requestDate: fmtDate(new Date(today - 20 * ms)), note: '' },
-    { id: DB.genId(), title: '복합기 잉크 10세트', dept: '영업팀', requester: '강서연', amount: 230000, category: '소모품', status: '검토중', requestDate: fmtDate(new Date(today - 5 * ms)), note: '' },
-    { id: DB.genId(), title: '회의실 화이트보드', dept: '총무팀', requester: '임태준', amount: 560000, category: '비품', status: '승인', requestDate: fmtDate(new Date(today - 90 * ms)), note: '' },
+    { id: DB.genId(), name: 'A4 복사용지 20박스', dept: '총무팀', requester: '이민수', amount: 640000, category: '소모품', status: '승인', requestDate: fmtDate(new Date(today - 30 * ms)), note: '긴급 요청' },
+    { id: DB.genId(), name: '무선 키보드/마우스 10개', dept: 'IT팀', requester: '김지원', amount: 450000, category: '비품', status: '검토중', requestDate: fmtDate(new Date(today - 10 * ms)), note: '재택근무 지원' },
+    { id: DB.genId(), name: '탕비실 커피머신 교체', dept: '총무팀', requester: '박소연', amount: 380000, category: '비품', status: '반려', requestDate: fmtDate(new Date(today - 45 * ms)), note: '기존 기기 수리 우선' },
+    { id: DB.genId(), name: '청소 용품 세트', dept: '총무팀', requester: '최하나', amount: 120000, category: '소모품', status: '완료', requestDate: fmtDate(new Date(today - 60 * ms)), note: '' },
+    { id: DB.genId(), name: '프로젝터 스크린', dept: '교육팀', requester: '윤대호', amount: 850000, category: '비품', status: '승인', requestDate: fmtDate(new Date(today - 20 * ms)), note: '' },
+    { id: DB.genId(), name: '복합기 잉크 10세트', dept: '영업팀', requester: '강서연', amount: 230000, category: '소모품', status: '검토중', requestDate: fmtDate(new Date(today - 5 * ms)), note: '' },
+    { id: DB.genId(), name: '회의실 화이트보드', dept: '총무팀', requester: '임태준', amount: 560000, category: '비품', status: '승인', requestDate: fmtDate(new Date(today - 90 * ms)), note: '' },
   ]);
   DB.set('disposals', [
     { id: DB.genId(), name: '구형 데스크탑 PC (5대)', type: '일반폐기', category: '비품', qty: 5, unit: '대', reason: '노후화 성능 저하', method: '공인 업체 폐기', dept: 'IT팀', requester: '최준혁', requestDate: fmtDate(new Date(today - 40 * ms)), completedDate: fmtDate(new Date(today - 28 * ms)), status: '완료', note: '데이터 삭제 확인', attachments: [] },
@@ -77,39 +138,57 @@ function getDashboardProjectsByStatus() {
 
 // ===== ROUTER =====
 let currentSection = 'dashboard';
+
 const sectionTitles = {
   dashboard: { title: '대시보드', sub: '전체 업무 현황' },
-  projects: { title: '프로젝트 관리', sub: '프로젝트 진행 현황' },
+  projects: { title: '프로젝트 관리', sub: '프로젝트 진행 현황 관리' },
   inventory: { title: '재고 관리', sub: '재고 현황 및 품목 관리' },
   purchases: { title: '비품 구매/관리', sub: '구매 요청 및 승인 관리' },
+  rentals: { title: '비품 대여', sub: '비품 대여 및 반납 관리' },
   disposals: { title: '폐기 관리', sub: '폐기 신청 및 처리 관리' },
   notices: { title: '공지/숙지사항', sub: '매니저 읽음 확인 포함' },
-  parking: { title: '🚗 주차 등록', sub: '주차 할인 등록 관리' },
-  stats: { title: '통계 분석', sub: '재고·구매·폐기 통계 차트' },
+  parking: { title: '주차 등록', sub: '주차 할인 등록 관리' },
+  stats: { title: '통계 분석', sub: '재고·구매·폐기 통계 차트' }
 };
+
 function navigate(s) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const nav = document.querySelector(`[data-section="${s}"]`);
   if (nav) nav.classList.add('active');
+
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
   const sec = document.getElementById('section-' + s);
-  if (sec) sec.classList.add('active'); renderRentals
+  if (sec) sec.classList.add('active');
+
   const t = sectionTitles[s];
-  if (t) document.getElementById('topbar-title').innerHTML = t.title + `<span>${t.sub}</span>`;
+  if (t) {
+    const titleEl = document.getElementById('topbar-title');
+    if (titleEl) {
+      titleEl.innerHTML = `
+        ${t.title}
+        <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">
+          ${t.sub}
+        </span>`;
+    }
+  }
+
   currentSection = s;
   render(s);
 }
+
 function render(s) {
   if (s === 'dashboard') renderDashboard();
   else if (s === 'projects') { checkAutoTransition(); renderProjects(); }
   else if (s === 'inventory') renderInventory();
   else if (s === 'purchases') renderPurchases();
-  else if (s === 'disposals') renderDisposals();
   else if (s === 'rentals') renderRentals();
-  else if (s === 'stats') renderStats();
+  else if (s === 'disposals') renderDisposals();
   else if (s === 'notices') renderNotices();
-  else if (s === 'parking') { }
+  else if (s === 'parking') { /* 정적 */ }
+  else if (s === 'stats') renderStats();
 }
+
+
 
 
 // ===== TOAST =====
@@ -394,21 +473,27 @@ function getDashboardPurchasesByStatus() {
 
 // ===== DASHBOARD =====
 function renderDashboard() {
-  const proj = DB.get('projects'), inv = DB.get('inventory'), pur = DB.get('purchases'), dis = DB.get('disposals');
-  document.getElementById('stat-projects').textContent = proj.filter(p => p.status === '진행중').length;
+  // 1) 데이터 로드
+  const data = DB.get('projects') || [];
+  const inv = DB.get('inventory') || [];
+  const pur = DB.get('purchases') || [];
+  const dis = DB.get('disposals') || [];
+
+  // 2) 상단 요약 카드
+  document.getElementById('stat-projects').textContent = data.filter(p => p.status).length;
   document.getElementById('stat-inventory').textContent = inv.length;
   document.getElementById('stat-purchases').textContent = pur.filter(p => p.status === '검토중').length;
   document.getElementById('stat-disposals').textContent = dis.filter(d => d.status === '진행중').length;
-  document.getElementById('stat-lowstock').textContent = inv.filter(i => i.quantity <= i.minQty).length;
+  document.getElementById('stat-lowstock').textContent = inv.filter(i => i.quantity < i.minQty).length;
 
-  // === 최근 프로젝트(3열) ===
+  // 3) 최근 프로젝트(3열)
   const projWrap = document.getElementById('dash-recent-projects');
   if (projWrap) {
-    const groups = getDashboardProjectsByStatus();
+    const groups = getDashboardProjectsByStatus(data);
     const cols = [
       { key: '진행중', label: '진행중' },
       { key: '보류', label: '보류' },
-      { key: '완료', label: '완료' },
+      { key: '완료', label: '완료' }
     ];
     projWrap.innerHTML = `
       <div class="dash-cols dash-cols-3">
@@ -419,29 +504,28 @@ function renderDashboard() {
               ${groups[c.key].length === 0
         ? `<div class="dash-empty">해당 상태의 프로젝트가 없습니다.</div>`
         : groups[c.key].map(p => `
-                  <div class="dash-card dash-card-project status-${c.key}">
-                    <div class="dash-card-title">${p.name}</div>
-                    <div class="dash-card-meta">
-                      <span>${p.manager || '담당자 미지정'}</span>
-                      <span>${p.startDate || '-'} ~ ${p.endDate || '-'}</span>
-                      <span>${p.progress ?? 0}%</span>
-                    </div>
-                  </div>`).join('')
-      }
+                    <div class="dash-card dash-card-project status-${c.key}">
+                      <div class="dash-card-title">${p.name}</div>
+                      <div class="dash-card-meta">
+                        <span>${p.manager || '담당자 미지정'}</span>
+                        <span>${p.startDate || '-'} ~ ${p.endDate || '-'}</span>
+                        <span>${p.progress ?? 0}%</span>
+                      </div>
+                    </div>`).join('')}
             </div>
           </div>`).join('')}
       </div>`;
   }
 
-  // === 최근 구매요청(4열) ===
+  // 4) 최근 구매요청(4열)
   const purWrap = document.getElementById('dash-recent-purchases');
   if (purWrap) {
-    const groups = getDashboardPurchasesByStatus();
+    const groups = getDashboardPurchasesByStatus(pur);
     const cols = [
       { key: '검토중', label: '검토' },
       { key: '승인', label: '승인' },
       { key: '완료', label: '완료' },
-      { key: '반려', label: '반려' },
+      { key: '반려', label: '반려' }
     ];
     purWrap.innerHTML = `
       <div class="dash-cols dash-cols-4">
@@ -452,95 +536,206 @@ function renderDashboard() {
               ${groups[c.key].length === 0
         ? `<div class="dash-empty">해당 상태의 요청이 없습니다.</div>`
         : groups[c.key].map(p => `
-                  <div class="dash-card dash-card-purchase status-${c.key}">
-                    <div class="dash-card-title">${p.title}</div>
-                    <div class="dash-card-meta">
-                      <span>${p.dept || '-'}</span>
-                      <span>${p.requester || '-'}</span>
-                      <span>${p.requestDate || '-'}</span>
-                      <span>${numFmt(p.amount || 0)}원</span>
-                    </div>
-                  </div>`).join('')
-      }
+                    <div class="dash-card dash-card-purchase status-${c.key}">
+                      <div class="dash-card-title">${p.title}</div>
+                      <div class="dash-card-meta">
+                        <span>${p.dept || '-'}</span>
+                        <span>${p.requester || '-'}</span>
+                        <span>${p.requestDate || '-'}</span>
+                        <span>${numFmt(p.amount || 0)}원</span>
+                      </div>
+                    </div>`).join('')}
             </div>
           </div>`).join('')}
       </div>`;
   }
 }
 
-function sColor(s) { return { 진행중: '#4f8ef7', 계획중: '#f59e0b', 완료: '#34d399', 보류: '#8b90a7', 긴급: '#f87171' }[s] || '#8b90a7'; }
-function purColor(s) { return { 승인: '#34d399', 검토중: '#f59e0b', 반려: '#f87171', 완료: '#22d3ee' }[s] || '#8b90a7'; }
-function badgeHtml(s) { const m = { 진행중: 'badge-blue', 계획중: 'badge-orange', 완료: 'badge-green', 보류: 'badge-gray', 긴급: 'badge-red' }; return `<span class="badge ${m[s] || 'badge-gray'}">${s}</span>`; }
-function purBadge(s) { return `<span class="badge ${{ 승인: 'badge-green', 검토중: 'badge-orange', 반려: 'badge-red', 완료: 'badge-cyan' }[s] || 'badge-gray'}">${s}</span>`; }
-function disBadge(s) { return `<span class="badge ${{ 완료: 'badge-green', 진행중: 'badge-blue', 대기: 'badge-orange', 취소: 'badge-gray' }[s] || 'badge-gray'}">${s}</span>`; }
+
+function sColor(s) {
+  return { 진행중: '#4f8ef7', 계획중: '#f59e0b', 완료: '#34d399', 보류: '#8b90a7', 긴급: '#f87171' }[s] || '#8b90a7';
+}
+function purColor(s) {
+  return { 승인: '#34d399', 검토중: '#f59e0b', 반려: '#f87171', 완료: '#22d3ee' }[s] || '#8b90a7';
+}
+function badgeHtml(s) {
+  const m = { 진행중: 'badge-blue', 계획중: 'badge-orange', 완료: 'badge-green', 보류: 'badge-gray', 긴급: 'badge-red' };
+  return `<span class="badge ${m[s] || 'badge-gray'}">${s}</span>`;
+}
+function purBadge(s) {
+  return `<span class="badge ${{
+    승인: 'badge-green',
+    검토중: 'badge-orange',
+    반려: 'badge-red',
+    완료: 'badge-cyan'
+  }[s] || 'badge-gray'}">${s}</span>`;
+}
+function disBadge(s) {
+  return `<span class="badge ${{
+    완료: 'badge-green',
+    진행중: 'badge-blue',
+    대기: 'badge-orange',
+    취소: 'badge-gray'
+  }[s] || 'badge-gray'}">${s}</span>`;
+}
+
 
 
 // ===== PROJECTS =====
-let projFilter = '전체', projSort = 'none', projViewMode = 'all', projWeekOffset = 0, projSelectedMonth = '';
-
-function toggleProjSort() {
-  const cycle = ['none', 'asc', 'desc'];
-  const i = cycle.indexOf(projSort);
-  projSort = cycle[(i + 1) % 3];
-  const btn = document.getElementById('sort-btn');
-  if (btn) {
-    btn.className = 'sort-btn' + (projSort !== 'none' ? ' active' : '');
-    btn.textContent = projSort === 'asc' ? '📅 시작일 빠른순' : projSort === 'desc' ? '📅 시작일 느린순' : '📅 날짜 정렬';
-  }
-  renderProjects();
-}
+let projFilter = '전체';
+let projSort = 'none';
+let projViewMode = 'all';
+let projWeekOffset = 0;
+let projSelectedMonth = '';
+let currentDetailProjectId = null;
 
 function renderProjects() {
-  let data = DB.get('projects');
+  const wsId = getCurrentWorkspaceId() || 'default';
+
+  // 1) 원본 데이터
+  let data = DB.get('projects') || [];
+
   const today = getTodayKST();
 
-  // 오늘 필터 (전체 제외한 상태 탭에서만)
-  if (projFilter !== '전체' && projViewMode === 'today') {
-    data = data.filter(p => p.status === projFilter && p.startDate <= today && (!p.endDate || p.endDate >= today));
-  } else if (projFilter !== '전체') {
-    data = data.filter(p => p.status === projFilter);
+  // 2) 상태 필터 + 오늘 보기
+  if (projFilter !== '전체') {
+    if (projViewMode === 'today') {
+      data = data.filter(p =>
+        p.status === projFilter &&
+        p.startDate &&
+        p.startDate <= today &&
+        (!p.endDate || p.endDate >= today)
+      );
+    } else {
+      data = data.filter(p => p.status === projFilter);
+    }
   }
 
-  // 전체 탭 주별/월별 필터
+  // 3) 전체 탭 주별/월별 필터
   if (projFilter === '전체') {
     if (projViewMode === 'week') {
       const weekStart = getWeekStart(projWeekOffset);
       const weekEnd = getWeekEnd(projWeekOffset);
-      data = data.filter(p => p.startDate && p.startDate >= weekStart && p.startDate <= weekEnd);
+      data = data.filter(p =>
+        p.startDate &&
+        p.startDate >= weekStart &&
+        p.startDate <= weekEnd
+      );
     } else if (projViewMode === 'month' && projSelectedMonth) {
       const m = projSelectedMonth;
       data = data.filter(p => p.startDate && p.startDate.startsWith(m));
     }
   }
 
-  if (projSort === 'asc') data = [...data].sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
-  else if (projSort === 'desc') data = [...data].sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+  // 4) 정렬
+  if (projSort === 'asc') {
+    data = [...data].sort((a, b) =>
+      (a.startDate || '').localeCompare(b.startDate || '')
+    );
+  } else if (projSort === 'desc') {
+    data = [...data].sort((a.startDate || '').localeCompare(b.startDate || ''));
+    data = [...data].sort((a, b) =>
+      (b.startDate || '').localeCompare(a.startDate || '')
+    );
+  }
 
+  // 5) 렌더
+  const grid = document.getElementById('project-grid');
   document.getElementById('project-count').textContent = `총 ${data.length}개`;
-  document.getElementById('project-grid').innerHTML = data.length ? data.map(p => `
-    <div class="project-card">
-      <div class="project-card-header">
-        <div>${badgeHtml(p.status)}${p.priority === '긴급' ? '<span class="badge badge-red" style="margin-left:5px">🔥</span>' : ''}</div>
-        <div class="project-actions">
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="openProjModal('${p.id}')" title="수정" data-tooltip="수정">✏️</button>
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="openProjDetail('${p.id}')" title="상세보기" data-tooltip="상세보기">📄</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="delProject('${p.id}')" title="삭제" data-tooltip="삭제">🗑️</button>
-        </div>
-      </div>
-      <div class="project-name">${p.name}</div>
-      <div class="project-desc">${p.desc || '설명 없음'}</div>
-      <div class="project-meta"><span>👤 ${p.manager}</span><span>📅 ${p.startDate}~${p.endDate}</span><span>📌 ${p.tasks}개(${p.doneTasks}완)</span></div>
-      <div class="project-progress-label"><span>진행률</span><span>${p.progress}%</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${p.progress}%"></div></div>
-      ${renderAttachmentsStatic(p.attachments || [])}
-      <div class="project-footer"><span style="font-size:12px;color:var(--text-muted)">우선순위: <strong style="color:var(--text-primary)">${p.priority}</strong></span>
-        <button class="btn btn-primary btn-sm" onclick="quickProgress('${p.id}')">진행률 수정</button>
-      </div>
-    </div>`).join('') : '<div style="text-align:center;padding:60px;color:var(--text-muted)">📋 프로젝트가 없습니다.</div>';
 
-  // 필터 버튼 행 업데이트 (주별/월별 카운트)
-  updateProjFilterBar();
+  grid.innerHTML = data.length
+    ? `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:13px;color:var(--text-muted)">프로젝트 목록</div>
+        <button class="btn btn-primary btn-sm" onclick="openProjModal()">
+          + 새 프로젝트
+        </button>
+      </div>
+      <div class="projects-grid">
+        ${data.map(p => `
+          <div class="project-card">
+            <div class="project-card-header">
+              <div>${badgeHtml(p.status)} ...</div>
+              <div class="project-actions">
+                <button class="btn btn-secondary btn-sm btn-icon"
+                        onclick="openProjModal('${p.id}')"
+                        title="수정" data-tooltip="수정">✏️</button>
+                <button class="btn btn-secondary btn-sm btn-icon"
+                        onclick="openProjDetail('${p.id}')"
+                        title="상세보기" data-tooltip="상세보기">📄</button>
+                <button class="btn btn-danger btn-sm btn-icon"
+                        onclick="delProject('${p.id}')"
+                        title="삭제" data-tooltip="삭제">🗑️</button>
+              </div>
+            </div>
+            <div class="project-name">${p.name}</div>
+            <div class="project-desc">${p.desc || '설명 없음'}</div>
+            <div class="project-meta">
+              <span>👤 ${p.manager}</span>
+              <span>📅 ${p.startDate}~${p.endDate}</span>
+              <span>📌 ${p.tasks}개(${p.doneTasks}완)</span>
+            </div>
+            <div class="project-progress-label">
+              <span>진행률</span><span>${p.progress}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${p.progress}%"></div>
+            </div>
+            ${renderAttachmentsStatic(p.attachments || [])}
+            <div class="project-footer">
+              <span style="font-size:12px;color:var(--text-muted)">
+                우선순위: <strong style="color:var(--text-primary)">${p.priority}</strong>
+              </span>
+              <button class="btn btn-primary btn-sm" onclick="quickProgress('${p.id}')">
+                진행률 수정
+              </button>
+            </div>
+          </div>`).join('')}
+      </div>`
+    : `
+      <div style="text-align:center;padding:60px;color:var(--text-muted)">
+        📋 프로젝트가 없습니다.<br>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openProjModal()">
+          + 첫 프로젝트 만들기
+        </button>
+      </div>`;
 }
+
+// 전역 함수로 분리 (renderProjects 안에 넣지 말 것!)
+function openProjModal(editId = null) {
+  const form = document.getElementById('proj-form');
+  if (form) form.reset();
+
+  document.getElementById('proj-edit-id').value = editId || '';
+  const titleEl = document.getElementById('proj-modal-title');
+  if (titleEl) {
+    titleEl.textContent = editId ? '프로젝트 수정' : '새 프로젝트';
+  }
+
+  setRTE('rte-proj-desc', '');
+
+  if (editId) {
+    const list = DB.get('projects') || [];
+    const p = list.find(x => x.id === editId);
+    if (p) {
+      document.getElementById('proj-name').value = p.name || '';
+      document.getElementById('proj-status').value = p.status || '';
+      document.getElementById('proj-priority').value = p.priority || '';
+      document.getElementById('proj-manager').value = p.manager || '';
+      document.getElementById('proj-start').value = p.startDate || '';
+      document.getElementById('proj-end').value = p.endDate || '';
+      document.getElementById('proj-tasks').value = p.tasks || 0;
+      document.getElementById('proj-done-tasks').value = p.doneTasks || 0;
+      document.getElementById('proj-progress').value = p.progress || 0;
+      setRTE('rte-proj-desc', p.desc || '');
+    }
+  }
+
+  openModal('project-modal');
+}
+// 필터 버튼 행 업데이트
+updateProjFilterBar();
+
 
 // 주별/월별 날짜 헬퍼
 function getWeekStart(offset) {
@@ -560,15 +755,21 @@ function getWeekEnd(offset) {
 function updateProjFilterBar() {
   const bar = document.getElementById('proj-extra-btns');
   if (!bar) return;
-  const projects = DB.get('projects');
+  let data = DB.get('projects') || [];
+
 
   if (projFilter === '전체') {
     // 주별 카운트
-    const ws = getWeekStart(projWeekOffset), we = getWeekEnd(projWeekOffset);
-    const weekCount = projects.filter(p => p.startDate && p.startDate >= ws && p.startDate <= we).length;
+    const ws = getWeekStart(projWeekOffset);
+    const we = getWeekEnd(projWeekOffset);
+    const weekCount = data.filter(p =>
+      p.startDate && p.startDate >= ws && p.startDate <= we
+    ).length;
     // 월별 카운트
     const monthCount = projSelectedMonth
-      ? projects.filter(p => p.startDate && p.startDate.startsWith(projSelectedMonth)).length
+      ? data.filter(p =>
+        p.startDate && p.startDate.startsWith(projSelectedMonth)
+      ).length
       : 0;
 
     bar.innerHTML = `
@@ -615,45 +816,78 @@ function setProjFilter(f) {
 }
 
 function openProjDetail(id) {
-  const p = DB.get('projects').find(x => x.id === id);
-  if (!p) return;
-  alert(`[${p.name}]\n상태: ${p.status}\n담당자: ${p.manager}\n기간: ${p.startDate} ~ ${p.endDate}\n진행률: ${p.progress}%\n우선순위: ${p.priority}`);
+  let data = DB.get('projects') || [];
+  if (!p) {
+    showToast('프로젝트를 찾을 수 없습니다.', 'error');
+    return;
+  }
+  currentDetailProjectId = p.id;
+
+  const nameEl = document.getElementById('proj-detail-name');
+  const statusEl = document.getElementById('proj-detail-status');
+  const priEl = document.getElementById('proj-detail-priority');
+  const mgrEl = document.getElementById('proj-detail-manager');
+  const dateEl = document.getElementById('proj-detail-dates');
+  const progEl = document.getElementById('proj-detail-progress');
+  const descEl = document.getElementById('proj-detail-desc');
+  const taskEl = document.getElementById('proj-detail-tasks');
+  const attEl = document.getElementById('proj-detail-attachments');
+
+  if (!nameEl || !statusEl || !priEl || !mgrEl || !dateEl || !progEl || !descEl || !taskEl || !attEl) {
+    return;
+  }
+
+  nameEl.textContent = p.name || '(제목 없음)';
+  statusEl.innerHTML = badgeHtml(p.status || '진행중');
+  priEl.innerHTML = p.priority
+    ? `<span class="badge badge-purple">우선순위: ${p.priority}</span>`
+    : '';
+  mgrEl.textContent = p.manager || '담당자 미지정';
+  dateEl.textContent = (p.startDate || '-') + ' ~ ' + (p.endDate || '-');
+  progEl.textContent = (p.progress || 0) + '%';
+  descEl.innerHTML = p.desc || '<span style="color:var(--text-muted);">설명이 없습니다.</span>';
+  taskEl.textContent = `${p.tasks || 0}개 (완료 ${p.doneTasks || 0}개)`;
+
+  attEl.innerHTML = renderAttachmentsStatic(p.attachments || []);
+
+  openModal('project-detail-modal');
 }
 
-function openProjModal(editId = null) {
-  document.getElementById('proj-form').reset();
-  document.getElementById('proj-edit-id').value = '';
-  document.getElementById('proj-modal-title').textContent = editId ? '프로젝트 수정' : '새 프로젝트 추가';
-  setRTE('rte-proj-desc', '');
-  initFileZone('proj-file-zone', 'proj-previews');
-  if (editId) {
-    const p = DB.get('projects').find(x => x.id === editId); if (!p) return;
-    document.getElementById('proj-edit-id').value = p.id;
-    document.getElementById('proj-name').value = p.name;
-    setRTE('rte-proj-desc', p.desc || '');
-    document.getElementById('proj-status').value = p.status;
-    document.getElementById('proj-priority').value = p.priority;
-    document.getElementById('proj-manager').value = p.manager;
-    document.getElementById('proj-start').value = p.startDate;
-    document.getElementById('proj-end').value = p.endDate;
-    document.getElementById('proj-tasks').value = p.tasks;
-    document.getElementById('proj-done-tasks').value = p.doneTasks;
-    document.getElementById('proj-progress').value = p.progress;
-    loadAttachmentsIntoZone(p.attachments || [], 'proj-previews');
-  }
-  openModal('project-modal');
-}
 
 function saveProject() {
   const name = document.getElementById('proj-name').value.trim();
   if (!name) { showToast('프로젝트명을 입력하세요.', 'error'); return; }
   const editId = document.getElementById('proj-edit-id').value;
   const projects = DB.get('projects');
-  const data = { name, desc: getRTE('rte-proj-desc'), status: document.getElementById('proj-status').value, priority: document.getElementById('proj-priority').value, manager: document.getElementById('proj-manager').value.trim() || '미지정', startDate: document.getElementById('proj-start').value, endDate: document.getElementById('proj-end').value, tasks: +document.getElementById('proj-tasks').value || 0, doneTasks: +document.getElementById('proj-done-tasks').value || 0, progress: +document.getElementById('proj-progress').value || 0, attachments: [...pendingAttachments] };
-  if (editId) { const idx = projects.findIndex(p => p.id === editId); if (idx > -1) projects[idx] = { ...projects[idx], ...data }; showToast('수정되었습니다.'); }
-  else { projects.push({ id: DB.genId(), ...data }); showToast('추가되었습니다.'); }
-  DB.set('projects', projects); closeModal('project-modal'); renderProjects();
+  const wsId = getCurrentWorkspaceId();
+
+  const data = {
+    name,
+    desc: getRTE('rte-proj-desc'),
+    status: document.getElementById('proj-status').value,
+    priority: document.getElementById('proj-priority').value,
+    manager: document.getElementById('proj-manager').value.trim() || '미지정',
+    startDate: document.getElementById('proj-start').value,
+    endDate: document.getElementById('proj-end').value,
+    tasks: +document.getElementById('proj-tasks').value || 0,
+    doneTasks: +document.getElementById('proj-done-tasks').value || 0,
+    progress: +document.getElementById('proj-progress').value || 0,
+    attachments: [...pendingAttachments]
+  };
+
+  if (editId) {
+    const idx = projects.findIndex(p => p.id === editId);
+    if (idx > -1) projects[idx] = { ...projects[idx], ...data };
+    showToast('수정되었습니다.');
+  } else {
+    projects.push({ id: DB.genId(), ...data });
+    showToast('추가되었습니다.');
+  }
+  DB.set('projects', projects);
+  closeModal('project-modal');
+  renderProjects();
 }
+
 
 function delProject(id) {
   showConfirm('삭제', '이 프로젝트를 삭제하시겠습니까?', () => {
@@ -692,12 +926,33 @@ function renderInventory() {
       <td data-field="location">${i.location}</td>
       <td>${numFmt(i.price)}원</td>
       <td class="action-cell">
-        <div style="display:flex;gap:5px">
-          <button class="btn btn-secondary btn-sm" onclick="inlineEditInv('${i.id}')">✏️</button>
-          <button class="btn btn-warning btn-sm" onclick="openInvModal('${i.id}')">📝</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="delInv('${i.id}')">🗑️</button>
-        </div>
-      </td>
+  <div style="display:flex;gap:5px;">
+    <div class="tooltip-wrap">
+      <button class="btn btn-secondary btn-sm"
+              onclick="inlineEditInv('${i.id}')">
+        ✏️
+      </button>
+      <div class="tooltip-mini">수정</div>
+    </div>
+
+    <div class="tooltip-wrap">
+      <button class="btn btn-warning btn-sm"
+              onclick="openInvModal('${i.id}')">
+        🧾
+      </button>
+      <div class="tooltip-mini">상세</div>
+    </div>
+
+    <div class="tooltip-wrap">
+      <button class="btn btn-danger btn-sm btn-icon"
+              onclick="delInv('${i.id}')">
+        🗑️
+      </button>
+      <div class="tooltip-mini">삭제</div>
+    </div>
+  </div>
+</td>
+
     </tr>`;
   }).join('') : `<tr class="empty-row"><td colspan="8">📦 재고 품목이 없습니다.</td></tr>`;
 }
@@ -755,13 +1010,51 @@ function renderPurchases() {
       <td>${purBadge(p.status)}</td>
       <td>${p.requestDate}</td>
       <td class="action-cell">
-        <div style="display:flex;gap:5px;flex-wrap:wrap">
-          ${p.status === '검토중' ? `<button class="btn btn-success btn-sm" onclick="setPurStatus('${p.id}','승인')">✅</button><button class="btn btn-danger btn-sm" onclick="setPurStatus('${p.id}','반려')">❌</button>` : ''}
-          <button class="btn btn-secondary btn-sm" onclick="inlineEditPur('${p.id}')">✏️</button>
-          <button class="btn btn-warning btn-sm" onclick="openPurModal('${p.id}')">📝</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="delPur('${p.id}')">🗑️</button>
-        </div>
-      </td>
+  <div style="display:flex;gap:5px;flex-wrap:wrap;">
+
+    <div class="tooltip-wrap">
+      <button class="btn btn-success btn-sm"
+              onclick="setPurStatus('${p.id}','승인')">
+        ✅
+      </button>
+      <div class="tooltip-mini">승인</div>
+    </div>
+
+    <div class="tooltip-wrap">
+      <button class="btn btn-danger btn-sm"
+              onclick="setPurStatus('${p.id}','반려')">
+        ❌
+      </button>
+      <div class="tooltip-mini">반려</div>
+    </div>
+
+    <div class="tooltip-wrap">
+      <button class="btn btn-secondary btn-sm"
+              onclick="inlineEditPur('${p.id}')">
+        ✏️
+      </button>
+      <div class="tooltip-mini">수정</div>
+    </div>
+
+    <div class="tooltip-wrap">
+      <button class="btn btn-warning btn-sm"
+              onclick="openPurModal('${p.id}')">
+        🧾
+      </button>
+      <div class="tooltip-mini">상세</div>
+    </div>
+
+    <div class="tooltip-wrap">
+      <button class="btn btn-danger btn-sm btn-icon"
+              onclick="delPur('${p.id}')">
+        🗑️
+      </button>
+      <div class="tooltip-mini">삭제</div>
+    </div>
+
+  </div>
+</td>
+
     </tr>`).join('') : `<tr class="empty-row"><td colspan="7">🛒 구매 요청이 없습니다.</td></tr>`;
 }
 function inlineEditPur(id) {
@@ -1128,8 +1421,16 @@ function setStatsPeriod(p) {
 
 // ===== MANAGERS =====
 let currentMgrId = localStorage.getItem('biz_cur_mgr') || null;
-function getManagers() { return DB.get('managers'); }
-function getCurrentMgr() { if (!currentMgrId) return null; return getManagers().find(m => m.id === currentMgrId) || null; }
+
+function getManagers() {
+  return DB.get('managers') || [];
+}
+
+function getCurrentMgr() {
+  if (!currentMgrId) return null;
+  return getManagers().find(m => m.id === currentMgrId) || null;
+}
+
 function setCurrentMgr(id) {
   currentMgrId = id;
   if (id) localStorage.setItem('biz_cur_mgr', id);
@@ -1139,6 +1440,7 @@ function setCurrentMgr(id) {
   if (currentSection === 'notices') renderNotices();
   showToast('매니저가 변경되었습니다.');
 }
+
 function clearCurrentMgr() {
   showConfirm('매니저 해제', '현재 매니저 지정을 해제하시겠습니까?', () => {
     currentMgrId = null;
@@ -1148,325 +1450,412 @@ function clearCurrentMgr() {
     renderNotices();
   });
 }
+
 function updateSidebarMgr() {
   const mgr = getCurrentMgr();
-  const el = document.getElementById('sidebar-mgr-name');
-  if (!el) return;
-  el.textContent = mgr ? mgr.name : '매니저 선택';
-  const av = document.getElementById('sidebar-mgr-av');
-  if (av) av.textContent = mgr ? mgr.name[0] : '?';
+
+  const nameEl = document.getElementById('sidebar-mgr-name');
+  const avEl = document.getElementById('sidebar-mgr-av');
+  const roleEl = document.querySelector('.mgr-role-badge');
+
+  // 이름
+  if (nameEl) {
+    nameEl.textContent = mgr ? mgr.name : '매니저 선택';
+  }
+
+  // 아바타 (이니셜)
+  if (avEl) {
+    avEl.textContent = mgr && mgr.name ? mgr.name[0] : '?';
+  }
+
+  // 직급 배지
+  if (roleEl) {
+    if (!mgr || !mgr.role) {
+      roleEl.textContent = '';
+      roleEl.style.display = 'none';
+    } else {
+      const roleMap = {
+        leader: '👑 리더',
+        subleader: '🥈 서브리더',
+        staff: '👤 멤버',
+        member: '👤 멤버'
+      };
+      roleEl.textContent = roleMap[mgr.role] || '👤 멤버';
+      roleEl.style.display = 'inline-block';
+    }
+  }
 }
+
+
 function openMgrSelectOverlay() {
   const mgrs = getManagers();
   const cur = currentMgrId;
   const list = document.getElementById('mgr-select-list');
   if (!list) return;
-  list.innerHTML = mgrs.length ? mgrs.map(m => `
-    <div class="mgr-select-item${m.id === cur ? ' selected' : ''}" onclick="setCurrentMgr('${m.id}')">
-      <div class="mgr-item-avatar">${m.name[0]}</div>
-      <div class="mgr-item-info" style="flex:1">
-        <div class="mgr-item-name">${m.name}</div>
-        ${m.role === 'leader' ? '<span class="badge badge-purple" style="font-size:10px">👑 리더</span>' : '<span class="badge badge-gray" style="font-size:10px">👤 멤버</span>'}
-      </div>
-      ${m.id === cur ? '<span style="color:var(--accent-green);font-size:12px">✅ 현재</span>' : ''}
-    </div>`).join('') : '<div style="text-align:center;padding:20px;color:var(--text-muted)">등록된 매니저가 없습니다.<br>공지사항 > 매니저 관리에서 추가하세요.</div>';
+
+  list.innerHTML = mgrs.length
+    ? mgrs.map(m => `
+      <div class="mgr-select-item${m.id === cur ? ' selected' : ''}"
+           onclick="setCurrentMgr('${m.id}')">
+        <div class="mgr-item-avatar">${m.name[0]}</div>
+        <div class="mgr-item-info" style="flex:1">
+          <div class="mgr-item-name">${m.name}</div>
+          <span class="badge ${m.role === 'leader' ? 'badge-purple' : m.role === 'subleader' ? 'badge-blue' : 'badge-gray'}"
+                style="font-size:10px">
+            ${m.role === 'leader' ? '👑 리더' : m.role === 'subleader' ? '🥈 서브리더' : '👤 멤버'}
+          </span>
+        </div>
+        ${m.id === cur ? '<span style="color:var(--accent-green);font-size:12px">✅ 현재</span>' : ''}
+      </div>`).join('')
+    : '<div style="text-align:center;padding:20px;color:var(--text-muted)">등록된 매니저가 없습니다.<br>공지사항 > 매니저 관리에서 추가하세요.</div>';
+
   document.getElementById('mgr-select-overlay').classList.add('open');
 }
-function closeMgrSelectOverlay() { document.getElementById('mgr-select-overlay').classList.remove('open'); }
 
-function openMgrModal() { renderMgrList(); openModal('manager-modal'); }
-function renderMgrList() {
-  const mgrs = getManagers();
-  const el = document.getElementById('mgr-modal-list');
-  if (!el) return;
-  el.innerHTML = mgrs.length ? mgrs.map(m => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div class="mgr-item-avatar">${m.name[0]}</div>
-      <div style="flex:1">
-        <div style="font-weight:600">${m.name}</div>
-        <div style="font-size:11px;color:var(--text-muted)">${m.role === 'leader' ? '👑 리더' : '👤 멤버'}</div>
-      </div>
-      <button class="btn btn-sm ${m.role === 'leader' ? 'btn-warning' : 'btn-secondary'}"
-        onclick="toggleMgrRole('${m.id}')" style="font-size:11px;padding:3px 10px">
-        ${m.role === 'leader' ? '리더 해제' : '리더 지정'}
-      </button>
-      <button class="btn btn-danger btn-sm btn-icon" onclick="deleteMgr('${m.id}')">🗑️</button>
-    </div>`).join('') : '<div style="text-align:center;padding:20px;color:var(--text-muted)">등록된 매니저가 없습니다.</div>';
-}
-function toggleMgrRole(id) {
-  const mgrs = getManagers();
-  const i = mgrs.findIndex(m => m.id === id); if (i < 0) return;
-  const cycle = ['member', 'leader', 'subleader'];
-  const cur = cycle.indexOf(mgrs[i].role || 'member');
-  mgrs[i].role = cycle[(cur + 1) % 3];
-  DB.set('managers', mgrs);
-  const roleLabel = { leader: '👑 리더', subleader: '🥈 서브리더', member: '👤 멤버' };
-  showToast(`${mgrs[i].name}님 → ${roleLabel[mgrs[i].role]}로 변경되었습니다.`);
-  renderMgrList();
-  if (currentSection === 'notices') renderNotices();
-}
-
-function addMgr() {
-  const input = document.getElementById('new-mgr-name'); if (!input) return;
-  const name = input.value.trim();
-  if (!name) { showToast('이름을 입력하세요.', 'error'); return; }
-  const mgrs = getManagers();
-  if (mgrs.find(m => m.name === name)) { showToast('이미 존재하는 이름입니다.', 'error'); return; }
-  mgrs.push({ id: DB.genId(), name, role: 'member' });
-  DB.set('managers', mgrs);
-  input.value = '';
-  showToast(`${name} 매니저가 추가되었습니다.`);
-  renderMgrList();
-}
-function deleteMgr(id) {
-  showConfirm('삭제', '이 매니저를 삭제하시겠습니까?', () => {
-    const mgrs = getManagers().filter(m => m.id !== id);
-    DB.set('managers', mgrs);
-    if (currentMgrId === id) { currentMgrId = null; localStorage.removeItem('biz_cur_mgr'); updateSidebarMgr(); }
-    showToast('삭제되었습니다.', 'warning');
-    renderMgrList();
-    if (currentSection === 'notices') renderNotices();
-  });
+function closeMgrSelectOverlay() {
+  document.getElementById('mgr-select-overlay').classList.remove('open');
 }
 
 // ===== NOTICE FILTERS =====
-let noticeFilter = '전체', noticeMonthFilter = '';
+let noticeFilter = '전체',
+  noticeYearFilter = '',
+  noticeMonthFilter = '',
+  noticeSearch = '';
 
 function setNoticeFilter(f) {
   noticeFilter = f;
   noticeMonthFilter = '';
-  document.querySelectorAll('#notice-filters .filter-tab').forEach(el => el.classList.toggle('active', el.dataset.filter === f));
+  document.querySelectorAll('#notice-filters .filter-tab')
+    .forEach(el => el.classList.toggle('active', el.dataset.filter === f));
+  renderNotices();
+}
+
+function setNoticeYearFilter(y) {
+  noticeYearFilter = y;
+  noticeMonthFilter = '';
   renderNotices();
 }
 
 function setNoticeMonthFilter(m) {
-  noticeMonthFilter = noticeMonthFilter === m ? '' : m;
+  noticeMonthFilter = m;
   renderNotices();
+}
+
+function getNoticeMonthKey(n) {
+  if (!n.completedAt) return null;
+  return n.completedAt.slice(0, 7); // "YYYY-MM"
+}
+
+function buildNoticeMonthBar() {
+  const allNotices = DB.get('notices') || [];
+  const bar = document.getElementById('notice-month-bar');
+  if (!bar) return;
+
+  const completed = allNotices.filter(n => n.completedAt);
+  if (!completed.length) {
+    bar.innerHTML = '';
+    return;
+  }
+
+  const yearSet = new Set();
+  const monthSet = new Set();
+
+  completed.forEach(n => {
+    const y = n.completedAt.slice(0, 4);
+    const ym = n.completedAt.slice(0, 7);
+    yearSet.add(y);
+    monthSet.add(ym);
+  });
+
+  const years = Array.from(yearSet).sort().reverse();
+  const months = Array.from(monthSet).sort().reverse();
+
+  const yearOptions = ['<option value="">전체 연도</option>']
+    .concat(years.map(y =>
+      `<option value="${y}" ${noticeYearFilter === y ? 'selected' : ''}>${y}년</option>`
+    )).join('');
+
+  const baseYear = noticeYearFilter || new Date().getFullYear().toString();
+
+  const monthOptions = ['<option value="">전체 월</option>']
+    .concat(
+      Array.from({ length: 12 }, (_, i) => {
+        const m = String(i + 1).padStart(2, '0');      // "01" ~ "12"
+        const ym = `${baseYear}-${m}`;                  // "2026-01" 등
+        const label = `${baseYear}년 ${i + 1}월`;
+        return `<option value="${ym}" ${noticeMonthFilter === ym ? 'selected' : ''}>${label}</option>`;
+      })
+    ).join('');
+
+  bar.innerHTML = `
+    <select class="form-control"
+            style="width:110px;font-size:12px;padding:3px 6px"
+            onchange="setNoticeYearFilter(this.value)">
+      ${yearOptions}
+    </select>
+    <select class="form-control"
+            style="width:130px;font-size:12px;padding:3px 6px"
+            onchange="setNoticeMonthFilter(this.value)">
+      ${monthOptions}
+    </select>
+  `;
 }
 
 // ===== NOTICES RENDER =====
 function renderNotices() {
+
   updateSidebarMgr();
   const mgr = getCurrentMgr();
   const mgrs = getManagers();
   const isLeader = mgr && mgr.role === 'leader';
   const isPrivileged = mgr && ['leader', 'subleader'].includes(mgr.role);
-  const allNotices = DB.get('notices');
 
-  // 매니저 바
-  const bar = document.getElementById('cur-mgr-bar');
-  if (bar) {
-    if (mgr) {
-      bar.innerHTML = `
-        <div class="cur-mgr-avatar">${mgr.name[0]}</div>
-        <div class="cur-mgr-info">
-          <div class="cur-mgr-name">${mgr.name} ${mgr.role === 'leader' ? '<span class="badge badge-purple" style="font-size:10px">👑 리더</span>' : ''}
-${mgr.role === 'subleader' ? '<span class="badge badge-blue" style="font-size:10px">🥈 서브리더</span>' : ''}</div>
-          <div class="cur-mgr-label">현재 사용자</div>
-        </div>
-        <button class="btn btn-secondary btn-sm" onclick="openMgrSelectOverlay()">변경</button>
-        <button class="btn btn-warning btn-sm" onclick="clearCurrentMgr()">🚪 해제</button>
-        <button class="btn btn-secondary btn-sm" onclick="openMgrModal()">⚙ 매니저 관리</button>`;
-    } else {
-      bar.innerHTML = `
-        <div class="cur-mgr-none">👤 매니저를 선택해야 읽음 표시가 가능합니다.</div>
-        <button class="btn btn-primary btn-sm" onclick="openMgrSelectOverlay()">매니저 선택</button>
-        <button class="btn btn-secondary btn-sm" onclick="openMgrModal()">⚙ 매니저 관리</button>`;
-    }
-  }
+  // 1) 기본 데이터 로딩
+  let data = [];
 
-  // 새 공지 버튼 권한 제어
-  const addBtn = document.getElementById('notice-add-btn');
-  if (addBtn) addBtn.style.display = isLeader ? '' : 'none';
-
-  // 공지사항만 월별 폴더 표시 (항상, 로그인 무관)
-  const noticeOnly = allNotices.filter(n => n.category === '공지사항');
-  const months = [...new Set(noticeOnly.filter(n => n.completedAt).map(n => n.completedAt.slice(0, 7)))].sort().reverse();
-  const monthBar = document.getElementById('notice-month-bar');
-  if (monthBar) {
-    monthBar.innerHTML = months.length ? `
-    <span style="font-size:12px;color:var(--text-muted)">📁</span>
-    ${months.map(m => `
-      <button class="filter-tab ${noticeMonthFilter === m ? 'active' : ''}"
-        style="font-size:11px;padding:3px 10px"
-        onclick="setNoticeMonthFilter('${m}')">${m.slice(5)}월</button>
-    `).join('')}` : '';
-  }
-
-
-
-  // 데이터 필터링
-  let data = [...allNotices];
-  if (noticeFilter !== '전체') data = data.filter(n => n.category === noticeFilter);
   if (noticeMonthFilter) {
-    data = data.filter(n => n.category === '공지사항' && n.completedAt && n.completedAt.slice(0, 7) === noticeMonthFilter);
+    // n월 선택됨 → 해당 월 폴더에서만 읽기 (예: biz_notices_2026-03)
+    data = DB.get(`notices_${noticeMonthFilter}`) || [];
+  } else {
+    // 월 선택 안 됨 → 전체 notices 에서 시작
+    const allNotices = DB.get('notices') || [];
+    data = allNotices;
   }
 
-  data = [...data].sort((a, b) => {
-    const po = { 긴급: 0, 중요: 1, 일반: 2 };
-    const pd = (po[a.priority] || 2) - (po[b.priority] || 2);
-    return pd !== 0 ? pd : b.createdAt.localeCompare(a.createdAt);
-  });
+  // 2) 카테고리 필터
+  if (noticeFilter !== '전체') {
+    data = data.filter(n => n.category === noticeFilter);
+  }
 
-  document.getElementById('notice-count').textContent = `총 ${data.length}건`;
+  // 3) 연도 필터 (월 선택 안 했을 때만 의미 있음)
+  if (!noticeMonthFilter && noticeYearFilter) {
+    data = data.filter(n => {
+      const base = n.completedAt || n.createdAt || '';
+      return base.startsWith(noticeYearFilter);
+    });
+  }
+
+  // 4) 검색 필터 (한 번만 유지)
+  if (noticeSearch) {
+    const s = noticeSearch.toLowerCase();
+    data = data.filter(n =>
+      (n.name || '').toLowerCase().includes(s) ||
+      (n.content || '').toLowerCase().includes(s)
+    );
+  }
 
   const container = document.getElementById('notice-cards');
   if (!container) return;
+
   container.innerHTML = data.length ? data.map(n => {
     const total = mgrs.length;
     const readCount = ((n.readers || []).filter(r => mgrs.find(m => m.id === r))).length;
     const isRead = mgr && (n.readers || []).includes(mgr.id);
-    const badgeCls = readCount === 0 ? 'none' : readCount === total ? '' : 'partial';
-    const readerNames = (n.readers || []).map(rid => mgrs.find(m => m.id === rid)?.name).filter(Boolean).join(', ');
+    const badgeCls =
+      readCount === 0 ? 'none'
+        : readCount === total ? ''
+          : 'partial';
+
+    const readerNames = (n.readers || [])
+      .map(rid => mgrs.find(m => m.id === rid)?.name)
+      .filter(Boolean)
+      .join(', ');
+
     const isCompleted = !!n.completedAt;
 
-    return `<div class="notice-card${isCompleted ? ' notice-completed' : ''}">
-      <div class="notice-priority-bar ${n.priority || '일반'}"></div>
-      <div class="notice-card-body">
-        <div class="notice-card-header">
-          <div class="notice-title">
-            ${isCompleted ? '<span class="badge badge-green" style="font-size:10px;margin-right:6px">✅ 완료</span>' : ''}
-            ${n.title}
-          </div>
-          <div class="notice-actions">
-            ${isLeader ? `
-              <button class="btn btn-secondary btn-sm" onclick="openNoticeModal('${n.id}')" data-tooltip="수정">✏️</button>
-              <button class="btn btn-danger btn-sm btn-icon" onclick="delNotice('${n.id}')" data-tooltip="삭제">🗑️</button>` : ''}
-          </div>
-        </div>
-        <div class="notice-meta">
-          <span>${n.category === '공지사항' ? '📢' : '📌'} ${n.category}</span>
-          <span>우선순위: <strong>${n.priority || '일반'}</strong></span>
-          <span>작성: ${n.createdBy || '관리자'}</span>
-          <span>${n.createdAt}</span>
-          ${isCompleted ? `<span style="color:var(--accent-green);font-size:11px">📁 ${n.completedAt.slice(0, 7)} 완료</span>` : ''}
-        </div>
-        <div class="notice-content">${n.content || '내용 없음'}</div>
-        <div class="notice-footer">
-          <div class="read-status-wrap">
-            <span class="read-count-badge ${badgeCls}">👁 읽음 ${readCount}/${total}명</span>
-            ${readerNames ? `<span class="read-names">${readerNames}</span>` : ''}
-          </div>
-          <div style="display:flex;gap:6px;align-items:center">
-  ${n.category === '공지사항' && isPrivileged
-        ? isCompleted
-          ? `<button class="btn btn-warning btn-sm" onclick="uncompleteNotice('${n.id}')">↩️ 완료 해제</button>`
-          : `<button class="btn btn-success btn-sm" onclick="completeNotice('${n.id}')">✅ 완료</button>`
+    return `
+      <div class="notice-card${isCompleted ? ' notice-completed' : ''}">
+        <div class="notice-priority-bar ${n.priority || '일반'}"></div>
+        <div class="notice-card-body">
+          <div class="notice-card-header">
+            <div class="notice-title">
+              ${isCompleted
+        ? '<span class="badge badge-green" style="font-size:10px;margin-right:6px">✅ 완료</span>'
         : ''}
-  ${mgr ? `<button class="btn-read${isRead ? ' read-done' : ''}" onclick="toggleRead('${n.id}')">${isRead ? '✅ 읽음' : '📖 읽음 표시'}</button>` : ''}
-</div>
-
+              ${n.name || '(제목 없음)'}
+            </div>
+            <div class="notice-actions">
+              ${isLeader ? `
+                <button class="btn btn-secondary btn-sm"
+                        onclick="openNoticeModal('${n.id}')"
+                        data-tooltip="수정">✏️</button>
+                <button class="btn btn-danger btn-sm btn-icon"
+                        onclick="delNotice('${n.id}')"
+                        data-tooltip="삭제">🗑️</button>
+              ` : ''}
+            </div>
+          </div>
+          <div class="notice-meta">
+            <span>${n.category === '공지사항' ? '📢' : '📌'} ${n.category || ''}</span>
+            <span>우선순위: <strong>${n.priority || '일반'}</strong></span>
+            <span>
+              작성: ${n.createdBy || '관리자'}${n.manager ? ' / 담당: ' + n.manager : ''}
+            </span>
+            <span>${n.createdAt || ''}</span>
+            ${isCompleted
+        ? `<span style="color:var(--accent-green);font-size:11px">
+                   📁 ${n.completedAt.slice(0, 7)} 완료
+                 </span>`
+        : ''}
+          </div>
+          <div class="notice-content">${n.content || '내용 없음'}</div>
+          <div class="notice-footer">
+            <div class="read-status-wrap">
+              <span class="read-count-badge ${badgeCls}">
+                👁 읽음 ${readCount}/${total}명
+              </span>
+              ${readerNames ? `<span class="read-names">${readerNames}</span>` : ''}
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              ${n.category === '공지사항' && isPrivileged
+        ? (isCompleted
+          ? `<button class="btn btn-warning btn-sm"
+               onclick="uncompleteNotice('${n.id}')">↩️ 완료 해제</button>`
+          : `<button class="btn btn-success btn-sm"
+               onclick="completeNotice('${n.id}')">✅ 완료</button>`)
+        : ''}
+              ${mgr
+        ? `<button class="btn-read${isRead ? ' read-done' : ''}"
+                           onclick="toggleRead('${n.id}')">
+                     ${isRead ? '✅ 읽음' : '📖 읽음 표시'}
+                   </button>`
+        : ''}
+            </div>
+          </div>
         </div>
-      </div>
+      </div>`;
+  }).join('') : `
+    <div style="text-align:center;padding:60px;color:var(--text-muted)">
+      📢 등록된 공지사항이 없습니다.<br>새 공지를 작성해 보세요.
     </div>`;
-  }).join('') : '<div style="text-align:center;padding:60px;color:var(--text-muted)">📢 등록된 공지사항이 없습니다.<br>새 공지를 작성해 보세요.</div>';
+  buildNoticeMonthBar();   // ✅ 인자 없이
 }
 
+// 완료 처리
 function completeNotice(id) {
+  const mgr = getCurrentMgr();
+  if (!mgr || !['leader', 'subleader'].includes(mgr.role)) {
+    showToast('리더/서브리더만 완료 처리할 수 있습니다.', 'error');
+    return;
+  }
+
   showConfirm('완료 처리', '이 공지사항을 완료 처리하시겠습니까?', () => {
-    const notices = DB.get('notices');
-    const i = notices.findIndex(n => n.id === id); if (i < 0) return;
-    notices[i].completedAt = getTodayKST();
+    const notices = DB.get('notices') || [];
+    const i = notices.findIndex(n => n.id === id);
+    if (i < 0) return;
+
+    const today = getTodayKST();           // "2026-03-23"
+    notices[i].completedAt = today;
+
+    // 전체 목록 업데이트
     DB.set('notices', notices);
-    showToast(`📁 ${notices[i].completedAt.slice(0, 7)} 폴더에 저장되었습니다.`, 'success');
+
+    // ✅ 완료된 월 폴더에 넣기 (예: biz_notices_2026-03)
+    const monthKey = getMonthKey(today);   // "2026-03"
+    if (monthKey) {
+      const monthList = DB.get(`notices_${monthKey}`) || [];
+      const j = monthList.findIndex(n => n.id === id);
+      if (j >= 0) monthList[j] = notices[i];
+      else monthList.push(notices[i]);
+      DB.set(`notices_${monthKey}`, monthList);
+    }
+
+    showToast(`📁 ${today.slice(0, 7)} 폴더에 저장되었습니다.`, 'success');
     renderNotices();
   });
 }
 
+
+// 완료 해제
 function uncompleteNotice(id) {
-  showConfirm('완료 해제', '완료 처리를 해제하시겠습니까?', () => {
-    const notices = DB.get('notices');
-    const i = notices.findIndex(n => n.id === id); if (i < 0) return;
-    delete notices[i].completedAt;
+  const mgr = getCurrentMgr();
+  if (!mgr || !['leader', 'subleader'].includes(mgr.role)) {
+    showToast('리더/서브리더만 완료 해제할 수 있습니다.', 'error');
+    return;
+  }
+
+  showConfirm('완료 해제', '이 공지사항 완료를 해제하시겠습니까?', () => {
+    const notices = DB.get('notices') || [];
+    const i = notices.findIndex(n => n.id === id);
+    if (i < 0) return;
+
+    // 완료 정보 제거
+    notices[i].completedAt = '';
+
+    // 전체 목록 저장
     DB.set('notices', notices);
-    showToast('완료가 해제되었습니다.', 'warning');
+
+    // (필요하면 월 폴더에서도 제거)
+    // const monthKey = getMonthKey(/* 원래 완료일 */);
+    // ... 여기서 notices_YYYY-MM 에서도 빼 줄 수 있음 ...
+
     renderNotices();
+    showToast('완료가 해제되었습니다.', 'success');
   });
 }
 
 
-function toggleRead(noticeId) {
-  const mgr = getCurrentMgr();
-  if (!mgr) { showToast('먼저 매니저를 선택하세요.', 'error'); openMgrSelectOverlay(); return; }
-  const notices = DB.get('notices');
-  const idx = notices.findIndex(n => n.id === noticeId); if (idx < 0) return;
-  const readers = notices[idx].readers || [];
-  if (readers.includes(mgr.id)) {
-    notices[idx].readers = readers.filter(r => r !== mgr.id);
-    showToast('읽음 취소되었습니다.', 'warning');
-  } else {
-    notices[idx].readers = [...readers, mgr.id];
-    showToast('읽음 표시되었습니다.', 'success');
-  }
-  DB.set('notices', notices);
-  renderNotices();
-}
 
+// ===== NOTICES: OPEN MODAL =====
 function openNoticeModal(editId = null) {
-  const mgr = getCurrentMgr();
-  if (!mgr || mgr.role !== 'leader') { showToast('리더만 공지를 등록/수정할 수 있습니다.', 'error'); return; }
-  document.getElementById('notice-form').reset();
-  document.getElementById('notice-edit-id').value = '';
-  document.getElementById('notice-modal-title').textContent = editId ? '공지사항 수정' : '새 공지사항 작성';
-  setRTE('rte-notice-content', '');
-  if (editId) {
-    const n = DB.get('notices').find(x => x.id === editId); if (!n) return;
-    document.getElementById('notice-edit-id').value = n.id;
-    document.getElementById('notice-title-input').value = n.title;
-    document.getElementById('notice-category').value = n.category || '공지사항';
-    document.getElementById('notice-priority').value = n.priority || '일반';
-    setRTE('rte-notice-content', n.content || '');
+  const form = document.getElementById('notice-form');
+  if (form) form.reset();
+
+  const idEl = document.getElementById('notice-edit-id');
+  if (idEl) idEl.value = editId || '';
+
+  const titleEl = document.getElementById('notice-modal-title');
+  if (titleEl) {
+    titleEl.textContent = editId ? '공지사항 수정' : '새 공지사항 작성';
   }
+
+  const managerEl = document.getElementById('notice-manager');
+  const catEl = document.getElementById('notice-category');
+  const prioEl = document.getElementById('notice-priority');
+  const rteEl = document.getElementById('rte-notice-content');
+
+  if (!editId) {
+    if (managerEl) managerEl.value = '';
+    if (catEl) catEl.value = '공지사항';
+    if (prioEl) prioEl.value = '일반';
+    if (typeof setRTE === 'function') {
+      setRTE('rte-notice-content', '');
+    } else if (rteEl) {
+      rteEl.innerHTML = '';
+    }
+  }
+
+  if (editId) {
+    const list = DB.get('notices') || [];
+    const n = list.find(x => x.id === editId);
+    if (n) {
+      document.getElementById('notice-title').value = n.name || '';
+      if (managerEl) managerEl.value = n.manager || '';
+      if (catEl) catEl.value = n.category || '공지사항';
+      if (prioEl) prioEl.value = n.priority || '일반';
+      if (typeof setRTE === 'function') {
+        setRTE('rte-notice-content', n.content || '');
+      } else if (rteEl) {
+        rteEl.innerHTML = n.content || '';
+      }
+    }
+  }
+
   openModal('notice-modal');
 }
-
-function saveNotice() {
-  const mgr = getCurrentMgr();
-  if (!mgr || mgr.role !== 'leader') { showToast('리더만 공지를 등록할 수 있습니다.', 'error'); return; }
-  const title = document.getElementById('notice-title-input').value.trim();
-  if (!title) { showToast('제목을 입력하세요.', 'error'); return; }
-  const editId = document.getElementById('notice-edit-id').value;
-  const data = DB.get('notices');
-  const now = getTodayKST();
-  const item = {
-    title,
-    category: document.getElementById('notice-category').value,
-    priority: document.getElementById('notice-priority').value,
-    content: getRTE('rte-notice-content'),
-    createdBy: mgr.name,
-    createdAt: now,
-    readers: []
-  };
-  if (editId) {
-    const i = data.findIndex(x => x.id === editId);
-    if (i > -1) { item.readers = data[i].readers || []; item.completedAt = data[i].completedAt || ''; data[i] = { ...data[i], ...item }; }
-    showToast('수정되었습니다.');
-  } else {
-    data.push({ id: DB.genId(), ...item });
-    showToast('공지사항이 등록되었습니다.');
-  }
-  DB.set('notices', data); closeModal('notice-modal'); renderNotices();
-}
-
-function delNotice(id) {
-  showConfirm('삭제', '이 공지사항을 삭제하시겠습니까?', () => {
-    DB.set('notices', DB.get('notices').filter(x => x.id !== id));
-    showToast('삭제됨', 'warning'); renderNotices();
-  });
-}
-
-
 
 // ===== MANAGER MODAL =====
 function openMgrModal() {
   renderMgrList();
   openModal('manager-modal');
 }
+
 function renderMgrList() {
   const mgrs = getManagers();
   const el = document.getElementById('mgr-modal-list');
   if (!el) return;
   const roleLabel = { leader: '👑 리더', subleader: '🥈 서브리더', member: '👤 멤버' };
+
   el.innerHTML = mgrs.length ? mgrs.map(m => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
       <div class="mgr-item-avatar">${m.name[0]}</div>
@@ -1475,10 +1864,10 @@ function renderMgrList() {
         <div style="font-size:11px;color:var(--text-muted)">${roleLabel[m.role || 'member']}</div>
       </div>
       <select class="form-control" style="width:120px;font-size:12px;padding:4px 8px"
-        onchange="setMgrRole('${m.id}', this.value)">
-        <option value="member" ${(m.role || 'member') === 'member' ? 'selected' : ''}>👤 멤버</option>
+              onchange="setMgrRole('${m.id}', this.value)">
+        <option value="member"   ${(m.role || 'member') === 'member' ? 'selected' : ''}>👤 멤버</option>
         <option value="subleader" ${m.role === 'subleader' ? 'selected' : ''}>🥈 서브리더</option>
-        <option value="leader" ${m.role === 'leader' ? 'selected' : ''}>👑 리더</option>
+        <option value="leader"   ${m.role === 'leader' ? 'selected' : ''}>👑 리더</option>
       </select>
       <button class="btn btn-danger btn-sm btn-icon" onclick="deleteMgr('${m.id}')">🗑️</button>
     </div>`).join('') : '<div style="text-align:center;padding:20px;color:var(--text-muted)">등록된 매니저가 없습니다.</div>';
@@ -1495,28 +1884,49 @@ function setMgrRole(id, role) {
   if (currentSection === 'notices') renderNotices();
 }
 
-
 function addMgr() {
   const name = document.getElementById('new-mgr-name').value.trim();
   if (!name) { showToast('이름을 입력하세요.', 'error'); return; }
   const mgrs = getManagers();
   if (mgrs.find(m => m.name === name)) { showToast('이미 등록된 이름입니다.', 'error'); return; }
-  mgrs.push({ id: DB.genId(), name, role: '매니저' });
+  mgrs.push({ id: DB.genId(), name, role: 'member' });
   DB.set('managers', mgrs);
   document.getElementById('new-mgr-name').value = '';
-  renderMgrList(); showToast(`${name} 매니저가 추가되었습니다.`);
+  renderMgrList();
+  showToast(`${name} 매니저가 추가되었습니다.`);
 }
-function delMgr(id) {
+
+function deleteMgr(id) {
   showConfirm('삭제', '이 매니저를 삭제하시겠습니까?', () => {
-    DB.set('managers', getManagers().filter(m => m.id !== id));
-    if (currentMgrId === id) { currentMgrId = null; localStorage.removeItem('biz_cur_mgr'); }
-    renderMgrList(); showToast('삭제됨', 'warning');
+    const mgrs = getManagers().filter(m => m.id !== id);
+    DB.set('managers', mgrs);
+    if (currentMgrId === id) {
+      currentMgrId = null;
+      localStorage.removeItem('biz_cur_mgr');
+      updateSidebarMgr();
+    }
+    showToast('삭제되었습니다.', 'warning');
+    renderMgrList();
+    if (currentSection === 'notices') renderNotices();
   });
 }
+
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
   seedData();
+
+  // seed initial workspace if none
+  let wss = getWorkspaces();
+  if (!wss.length) {
+    const id = DB.genId();
+    wss = [{ id, name: '기본 업무' }];
+    saveWorkspaces(wss);
+    setCurrentWorkspaceId(id);
+  } else if (!getCurrentWorkspaceId()) {
+    setCurrentWorkspaceId(wss[0].id);
+  }
+
   // seed initial managers if none
   if (!DB.get('managers').length) {
     DB.set('managers', [
@@ -1528,14 +1938,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // seed notices if none
   if (!DB.get('notices').length) {
     DB.set('notices', [
-      { id: DB.genId(), title: '2025년 안전 수칙 숙지 요청', category: '숙지사항', priority: '긴급', content: '<b>전 직원 필독.</b> 화재 대피 경로 및 소화기 위치를 반드시 숙지하세요.', createdBy: '관리자', createdAt: getTodayKST(), readers: [] },
-      { id: DB.genId(), title: '3월 정기 회의 안내', category: '공지사항', priority: '중요', content: '3월 25일(화) 오전 10시 대회의실에서 분기 정기 회의가 진행됩니다. 전 팀장 필참.', createdBy: '관리자', createdAt: getTodayKST(), readers: [] },
+      {
+        id: DB.genId(),
+        name: '2025년 안전 수칙 숙지 요청',
+        category: '숙지사항',
+        priority: '긴급',
+        content: '<b>전 직원 필독.</b> 화재 대피 경로 및 소화기 위치를 반드시 숙지하세요.',
+        createdBy: '관리자',
+        createdAt: getTodayKST(),
+        readers: []
+      },
+      {
+        id: DB.genId(),
+        name: '3월 정기 회의 안내',
+        category: '공지사항',
+        priority: '중요',
+        content: '3월 25일(화) 오전 10시 대회의실에서 분기 정기 회의가 진행됩니다. 전 팀장 필참.',
+        createdBy: '관리자',
+        createdAt: getTodayKST(),
+        readers: []
+      }
     ]);
   }
-  document.querySelectorAll('.nav-item').forEach(el => el.addEventListener('click', () => navigate(el.dataset.section)));
+
+  document
+    .querySelectorAll('.nav-item')
+    .forEach(el => el.addEventListener('click', () => navigate(el.dataset.section)));
   document.getElementById('confirm-ok').addEventListener('click', () => { if (confirmCb) confirmCb(); closeConfirm(); });
   document.getElementById('confirm-cancel').addEventListener('click', closeConfirm);
   document.getElementById('inv-search').addEventListener('input', e => { invSearch = e.target.value; renderInventory(); });
+  const noticeSearchInput = document.getElementById('notice-search');
+  if (noticeSearchInput) {
+    noticeSearchInput.addEventListener('input', (e) => {
+      noticeSearch = e.target.value.trim().toLowerCase();
+      renderNotices();
+    });
+  }
   document.querySelectorAll('#inv-cat-filters .filter-tab').forEach(el => el.addEventListener('click', () => {
     invCat = el.dataset.cat;
     document.querySelectorAll('#inv-cat-filters .filter-tab').forEach(t => t.classList.remove('active'));
@@ -1549,10 +1987,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sort button initial text
   const sb = document.getElementById('sort-btn');
   if (sb) sb.textContent = '📅 날짜 정렬';
+  renderWorkspaceList();
   checkAutoTransition();
   updateSidebarMgr();
   navigate('dashboard');
 });
+
 // ===== RENTALS =====
 const RENTAL_ITEMS = ['청소기', '스티머', '어댑터', '물걸레밀대', '선풍기', '이불', '베개', '직접입력'];
 let rentalFilter = '전체';
@@ -1736,4 +2176,111 @@ function delRental(id) {
     showToast('삭제되었습니다.', 'warning'); renderRentals();
   });
 }
+function updateWorkspaceHeader(sectionMeta) {
+  const el = document.getElementById('topbar-title');
+  if (!el) return;
+
+  const ws = getCurrentWorkspace();
+  const meta = sectionMeta || sectionTitles[currentSection] || null;
+
+  if (ws) {
+    // 워크스페이스 기준: 아이콘 + 이름 + 부제목
+    el.innerHTML = `
+      <span style="margin-right:6px;">${ws.icon || '📄'}</span>
+      ${ws.name}
+      <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">
+        ${ws.subtitle || (meta ? meta.sub : '')}
+      </span>
+    `;
+  } else if (meta) {
+    // 워크스페이스가 없으면 기존 섹션 타이틀
+    el.innerHTML = `
+      ${meta.title}
+      <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">
+        ${meta.sub || ''}
+      </span>
+    `;
+  }
+}
+// ===== WORKSPACE LIST RENDER =====
+function renderWorkspaceList() {
+  const listEl = document.getElementById('workspace-list');
+  if (!listEl) return;
+
+  const wss = getWorkspaces();
+  const curId = getCurrentWorkspaceId();
+
+  listEl.innerHTML = wss.map(ws => `
+    <div class="workspace-item ${ws.id === curId ? 'active' : ''}">
+      <span class="workspace-icon"
+            onclick="openIconPickerForWorkspace('${ws.id}');event.stopPropagation();">
+        ${ws.icon || '📄'}
+      </span>
+      <span class="workspace-name"
+            onclick="switchWorkspace('${ws.id}')">
+        ${ws.name}
+      </span>
+      <span class="workspace-delete"
+            onclick="deleteWorkspace('${ws.id}');event.stopPropagation();">
+        ✖
+      </span>
+    </div>
+  `).join('');
+}
+// ===== NOTICES: SAVE =====
+function saveNotice() {
+  const titleEl = document.getElementById('notice-title');
+  if (!titleEl) {
+    showToast('공지 제목 입력 요소를 찾을 수 없습니다.', 'error');
+    return;
+  }
+
+  const title = titleEl.value.trim();
+  const category = document.getElementById('notice-category')?.value || '공지사항';
+  const priority = document.getElementById('notice-priority')?.value || '일반';
+  const content = typeof getRTE === 'function'
+    ? getRTE('rte-notice-content')
+    : document.getElementById('rte-notice-content')?.innerHTML || '';
+
+  const managerName = document.getElementById('notice-manager')
+    ? document.getElementById('notice-manager').value.trim()
+    : '';
+
+  const editId = document.getElementById('notice-edit-id')?.value || '';
+
+  if (!title) {
+    showToast('공지 제목을 입력하세요.', 'error');
+    return;
+  }
+
+  const list = DB.get('notices') || [];
+  const mgr = typeof getCurrentMgr === 'function' ? getCurrentMgr() : null;
+
+  const base = {
+    name: title,
+    category,
+    priority,
+    content,
+    manager: managerName || '',
+    createdBy: mgr ? mgr.name : '관리자',
+    createdAt: getTodayKST(),
+    readers: []
+  };
+
+  if (editId) {
+    const i = list.findIndex(n => n.id === editId);
+    if (i >= 0) {
+      list[i] = { ...list[i], ...base };
+    }
+  } else {
+    list.push({ id: DB.genId(), ...base });
+  }
+
+  DB.set('notices', list);
+  closeModal('notice-modal');
+  if (typeof renderNotices === 'function') renderNotices();
+  if (typeof renderDashboard === 'function') renderDashboard();
+  showToast('공지사항이 저장되었습니다.', 'success');
+}
+
 
