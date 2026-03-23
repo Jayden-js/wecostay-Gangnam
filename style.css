@@ -375,10 +375,9 @@ body {
 }
 
 .btn-icon {
-  padding: 7px;
-  width: 32px;
-  height: 32px;
-  justify-content: center
+  width: auto;
+  height: auto;
+  border-radius: 8px;
 }
 
 /* ===== STAT CARDS ===== */
@@ -788,7 +787,7 @@ tbody tr.row-editing {
 
 .project-actions {
   display: flex;
-  gap: 5px
+  gap: 4px
 }
 
 /* attachment thumbnails in card */
@@ -2384,4 +2383,26 @@ tr.inline-editing input[type="date"].form-control {
   /* 카드 사이 간격은 너무 넓지 않게 */
   align-items: flex-start;
   width: 100%;
+}
+
+.project-actions .project-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.project-actions .action-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.project-action-btn::first-letter {
+  font-size: 12px;
+}
+
+.project-action-btn .action-label {
+  font-size: 11px;
 }

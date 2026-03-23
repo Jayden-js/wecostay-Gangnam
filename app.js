@@ -65,6 +65,8 @@ function checkAutoTransition() {
 
 // ===== SEED =====
 function seedData() {
+  if (localStorage.getItem('biz_seeded2')) return;
+
   let wss = getWorkspaces();
   if (!wss.length) {
     const id = DB.genId();
@@ -113,10 +115,8 @@ function seedData() {
     { id: DB.genId(), name: '고장난 복합기 1대', type: '비품', category: '비품', qty: 1, unit: '대', reason: '수리 불가 (메인보드 고장)', method: '전문업체 위탁', dept: 'IT팀', requester: '최진우', requestDate: fmtDate(new Date(sd - 3 * ms)), completedDate: '', status: '대기', note: 'A/S 기간 만료', attachments: [] },
     { id: DB.genId(), name: '사무용품 일괄 폐기', type: '소모품', category: '소모품', qty: 15, unit: '개', reason: '기능 불량 및 노후화', method: '일반폐기', dept: '총무팀', requester: '이민수', requestDate: fmtDate(new Date(sd - 50 * ms)), completedDate: fmtDate(new Date(sd - 45 * ms)), status: '완료', note: '폐기 완료 및 장부 정리', attachments: [] }
   ]);
+  localStorage.setItem('biz_seeded2', '1');
 }
-
-
-
 
 function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function today() { return fmtDate(new Date()); }
@@ -638,8 +638,10 @@ function renderProjects() {
   }
 
   // 5) 렌더
+  let lastProjCount = 0;
   const grid = document.getElementById('project-grid');
   document.getElementById('project-count').textContent = data.length;
+  lastProjCount = data.length;
 
   if (!grid) return;
 
@@ -649,10 +651,21 @@ function renderProjects() {
       <div class="project-card-header">
         ${badgeHtml(p.status)}
         <div class="project-actions">
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="openProjModal('${p.id}')" title="프로젝트 수정" data-tooltip>✏️</button>
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="openProjDetail('${p.id}')" title="상세 보기" data-tooltip>🔍</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="delProject('${p.id}')" title="삭제" data-tooltip>🗑</button>
-        </div>
+  <button class="btn btn-secondary btn-sm btn-icon project-action-btn"
+          onclick="openProjModal('${p.id}')">
+    ✏️ <span class="action-label">수정</span>
+  </button>
+  <button class="btn btn-secondary btn-sm btn-icon project-action-btn"
+          onclick="openProjDetail('${p.id}')">
+    🔍 <span class="action-label">상세</span>
+  </button>
+  <button class="btn btn-danger btn-sm btn-icon project-action-btn"
+          onclick="delProject('${p.id}')">
+    🗑 <span class="action-label">삭제</span>
+  </button>
+</div>
+
+
       </div>
       <div class="project-name">${p.name}</div>
       <div class="project-desc">${p.desc || ''}</div>
@@ -720,7 +733,6 @@ function openProjModal(editId = null) {
 // 필터 버튼 행 업데이트
 updateProjFilterBar();
 
-
 // 주별/월별 날짜 헬퍼
 function getWeekStart(offset) {
   const d = new Date(Date.now() + 9 * 60 * 60 * 1000);
@@ -729,6 +741,7 @@ function getWeekStart(offset) {
   mon.setUTCDate(d.getUTCDate() - (day === 0 ? 6 : day - 1) + offset * 7);
   return mon.toISOString().split('T')[0];
 }
+
 function getWeekEnd(offset) {
   const start = getWeekStart(offset);
   const d = new Date(start);
@@ -739,55 +752,84 @@ function getWeekEnd(offset) {
 function updateProjFilterBar() {
   const bar = document.getElementById('proj-extra-btns');
   if (!bar) return;
+
   let data = DB.get('projects') || [];
 
+  // 상태 필터 적용 (현재 목록과 동일 기준)
+  if (projFilter && projFilter !== '전체') {
+    data = data.filter(p => p.status === projFilter);
+  }
 
-  if (projFilter === '전체') {
-    // 주별 카운트
-    const ws = getWeekStart(projWeekOffset);
-    const we = getWeekEnd(projWeekOffset);
-    const weekCount = data.filter(p =>
-      p.startDate && p.startDate >= ws && p.startDate <= we
-    ).length;
-    // 월별 카운트
-    const monthCount = projSelectedMonth
-      ? data.filter(p =>
-        p.startDate && p.startDate.startsWith(projSelectedMonth)
-      ).length
-      : 0;
-
+  // 프로젝트가 하나도 없으면: 오늘 버튼만
+  if (!data.length) {
     bar.innerHTML = `
-      <button class="filter-tab ${projViewMode === 'week' ? 'active' : ''}" onclick="setProjViewMode('week')">
-        주별 <span class="badge badge-blue">${weekCount}</span>
-      </button>
-      <button class="filter-tab ${projViewMode === 'month' ? 'active' : ''}" onclick="setProjViewMode('month')">
-        월별 <span class="badge badge-blue">${monthCount}</span>
-      </button>
-      ${projViewMode === 'week' ? `
-        <button class="btn btn-secondary btn-sm" onclick="projWeekOffset--;renderProjects()">◀</button>
-        <span style="font-size:12px;color:var(--text-muted);padding:0 6px">${ws} ~ ${we}</span>
-        <button class="btn btn-secondary btn-sm" onclick="projWeekOffset++;renderProjects()">▶</button>
-      ` : ''}
-      ${projViewMode === 'month' ? `
-        <input type="month" class="form-control" style="width:140px;padding:4px 8px;font-size:12px"
-          value="${projSelectedMonth}"
-          onchange="projSelectedMonth=this.value;renderProjects()">
-      ` : ''}
-    `;
-  } else {
-    bar.innerHTML = `
-      <button class="filter-tab ${projViewMode === 'today' ? 'active' : ''}" onclick="setProjViewMode('today')">
+      <button class="filter-tab ${projViewMode === 'today' ? 'active' : ''}"
+              onclick="setProjViewMode('today')">
         오늘
       </button>
     `;
+    return;
   }
+
+  // ===== 주별 카운트: [startDate,endDate]가 주간 [ws,we]와 겹치면 포함 =====
+  const ws = getWeekStart(projWeekOffset); // 'YYYY-MM-DD'
+  const we = getWeekEnd(projWeekOffset);   // 'YYYY-MM-DD'
+
+  const weekCount = data.filter(p => {
+    if (!p.startDate && !p.endDate) return false;
+    const s = p.startDate || p.endDate;
+    const e = p.endDate || p.startDate;
+    return e >= ws && s <= we;
+  }).length;
+
+  // ===== 월별 카운트: 화면에 보이는 개수 그대로 사용 =====
+  let monthCount = 0;
+  if (projViewMode === 'month') {
+    monthCount = lastProjCount;
+  }
+
+  bar.innerHTML = `
+    <button class="filter-tab ${projViewMode === 'week' ? 'active' : ''}"
+            onclick="setProjViewMode('week')">
+      주별 <span class="badge badge-blue">${weekCount}</span>
+    </button>
+    <button class="filter-tab ${projViewMode === 'month' ? 'active' : ''}"
+            onclick="setProjViewMode('month')">
+      월별 <span class="badge badge-blue">${monthCount}</span>
+    </button>
+    ${projViewMode === 'week' ? `
+      <button class="btn btn-secondary btn-sm" onclick="projWeekOffset--;renderProjects()">◀</button>
+      <span style="font-size:12px;color:var(--text-muted);padding:0 6px">${ws} ~ ${we}</span>
+      <button class="btn btn-secondary btn-sm" onclick="projWeekOffset++;renderProjects()">▶</button>
+    ` : ''}
+    ${projViewMode === 'month' ? `
+      <input type="month" class="form-control"
+             style="width:140px;padding:4px 8px;font-size:12px"
+             value="${projSelectedMonth || ''}"
+             onchange="projSelectedMonth=this.value;renderProjects()">
+    ` : ''}
+  `;
 }
 
+
+
+
+
 function setProjViewMode(mode) {
-  projViewMode = projViewMode === mode ? 'all' : mode;
-  if (mode === 'month' && !projSelectedMonth) {
-    projSelectedMonth = getTodayKST().slice(0, 7);
+  projViewMode = mode;
+
+  if (mode === 'month') {
+    if (!projSelectedMonth) {
+      const today = getTodayKST();       // '2026-03-23' 처럼 온다고 가정
+      projSelectedMonth = today.slice(0, 7); // '2026-03'
+    }
+  } else if (mode === 'week') {
+    projWeekOffset = 0;
+  } else {
+    projWeekOffset = 0;
+    projSelectedMonth = null;
   }
+
   renderProjects();
 }
 
@@ -840,37 +882,50 @@ function openProjDetail(id) {
 
 function saveProject() {
   const name = document.getElementById('proj-name').value.trim();
-  if (!name) { showToast('프로젝트명을 입력하세요.', 'error'); return; }
+  if (!name) {
+    showToast('프로젝트 이름을 입력해 주세요.', 'error');
+    return;
+  }
+
   const editId = document.getElementById('proj-edit-id').value;
   const projects = DB.get('projects');
-  const wsId = getCurrentWorkspaceId();
+
+  const tasks = Number(document.getElementById('proj-tasks').value || 0);
+  const doneTasks = Number(document.getElementById('proj-done-tasks').value || 0);
+
+  // 진행률 자동 계산: (완료 / 총) * 100, 0으로 나누는 것 방지
+  const progress = tasks > 0 ? Math.round((doneTasks / tasks) * 100) : 0;
 
   const data = {
     name,
     desc: getRTE('rte-proj-desc'),
     status: document.getElementById('proj-status').value,
     priority: document.getElementById('proj-priority').value,
-    manager: document.getElementById('proj-manager').value.trim() || '미지정',
+    manager: document.getElementById('proj-manager').value.trim(),
     startDate: document.getElementById('proj-start').value,
     endDate: document.getElementById('proj-end').value,
-    tasks: +document.getElementById('proj-tasks').value || 0,
-    doneTasks: +document.getElementById('proj-done-tasks').value || 0,
-    progress: +document.getElementById('proj-progress').value || 0,
-    attachments: [...pendingAttachments]
+    tasks,
+    doneTasks,
+    progress,              // ← 여기를 직접 계산값으로
+    attachments: [...pendingAttachments],
   };
 
   if (editId) {
     const idx = projects.findIndex(p => p.id === editId);
-    if (idx > -1) projects[idx] = { ...projects[idx], ...data };
-    showToast('수정되었습니다.');
+    if (idx !== -1) {
+      projects[idx] = { ...projects[idx], ...data };
+      showToast('프로젝트가 수정되었습니다.');
+    }
   } else {
     projects.push({ id: DB.genId(), ...data });
-    showToast('추가되었습니다.');
+    showToast('새 프로젝트가 추가되었습니다.');
   }
+
   DB.set('projects', projects);
   closeModal('project-modal');
   renderProjects();
 }
+
 
 
 function delProject(id) {
