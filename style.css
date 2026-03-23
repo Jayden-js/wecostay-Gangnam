@@ -270,17 +270,32 @@ body {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  max-height: calc(100vh - 61px)
+  max-height: calc(100vh - 61px);
+  width: 100%;
+  max-width: none;
 }
 
+#section-projects {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  /* 가운데 정렬 제거 */
+  padding: 0;
+  /* 혹시 남은 좌측 패딩 제거 */
+}
+
+
+/* 섹션 공통: 기본은 숨김 */
 .section {
   display: none;
 }
 
+/* 현재 선택된 섹션만 표시 */
 .section.active {
   display: block;
-  animation: fadeIn .3s ease
+  animation: fadeIn .3s ease;
 }
+
 
 @keyframes fadeIn {
   from {
@@ -688,16 +703,21 @@ tbody tr.row-editing {
 /* ===== PROJECT CARDS ===== */
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 16px
+  /* 화면 크기에 맞게 열 개수 자동, 카드 폭 적당히 유지 */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  align-items: flex-start;
+  justify-items: stretch;
 }
+
 
 .project-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
-  transition: var(--transition)
+  transition: var(--transition);
+  margin: 0;
 }
 
 .project-card:hover {
@@ -1623,10 +1643,6 @@ textarea.form-control {
     margin-left: 56px
   }
 
-  .projects-grid {
-    grid-template-columns: 1fr
-  }
-
   .stats-grid {
     grid-template-columns: repeat(2, 1fr)
   }
@@ -2358,4 +2374,14 @@ tr.inline-editing input[type="date"].form-control {
   font-size: 11px;
   color: #888888;
   /* 회색 */
+}
+
+#project-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 3개 균등 분배 */
+  gap: 16px;
+  /* 카드 사이 간격은 너무 넓지 않게 */
+  align-items: flex-start;
+  width: 100%;
 }

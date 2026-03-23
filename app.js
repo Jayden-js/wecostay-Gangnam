@@ -65,55 +65,58 @@ function checkAutoTransition() {
 
 // ===== SEED =====
 function seedData() {
-  // 워크스페이스 기본 생성
   let wss = getWorkspaces();
   if (!wss.length) {
     const id = DB.genId();
     wss = [{
       id,
-      name: '기본 업무',
-      icon: '📁',
-      subtitle: '전체 업무 현황',
+      name: '기본 워크스페이스',
+      icon: '🏢',
+      subtitle: 'WecoStay 기본 환경',
       defaultSection: 'dashboard'
     }];
-
     saveWorkspaces(wss);
     setCurrentWorkspaceId(id);
   } else if (!getCurrentWorkspaceId()) {
     setCurrentWorkspaceId(wss[0].id);
   }
 
-  if (localStorage.getItem('biz_seeded2')) return;
-  const wsId = getCurrentWorkspaceId() || 'default';
   DB.set('projects', [
-    { id: DB.genId(), name: '2025 객실 리노베이션', desc: '<b>강남점</b> 객실 환경 개선 프로젝트', status: '진행중', priority: '높음', manager: '김철수', startDate: '2025-01-10', endDate: '2025-06-30', progress: 65, tasks: 12, doneTasks: 8, attachments: [] },
-    { id: DB.genId(), name: 'ERP 시스템 도입', desc: '전사 ERP 구축 및 도입', status: '계획중', priority: '긴급', manager: '이영희', startDate: '2025-03-01', endDate: '2025-12-31', progress: 20, tasks: 25, doneTasks: 5, attachments: [] },
-    { id: DB.genId(), name: '품질관리 매뉴얼 개정', desc: 'ISO 9001 기준 품질관리 문서 업데이트', status: '완료', priority: '중간', manager: '박민준', startDate: '2024-11-01', endDate: '2025-02-28', progress: 100, tasks: 8, doneTasks: 8, attachments: [] },
+    { id: DB.genId(), name: '본사 리모델링 2025', desc: '본사 사무실 전체 인테리어 리뉴얼', status: '진행중', priority: '높음', manager: '박매니저', startDate: '2025-01-10', endDate: '2025-06-30', progress: 65, tasks: 12, doneTasks: 8, attachments: [] },
+    { id: DB.genId(), name: 'ERP 시스템 구축', desc: 'ERP 통합 시스템 도입 및 직원 교육', status: '진행중', priority: '높음', manager: '김팀장', startDate: '2025-03-01', endDate: '2025-12-31', progress: 20, tasks: 25, doneTasks: 5, attachments: [] },
+    { id: DB.genId(), name: 'ISO 9001 인증 획득', desc: 'ISO 9001 품질경영시스템 인증 완료', status: '완료', priority: '중간', manager: '이과장', startDate: '2024-11-01', endDate: '2025-02-28', progress: 100, tasks: 8, doneTasks: 8, attachments: [] },
+    { id: DB.genId(), name: '고객 CRM 앱 개발', desc: '모바일 고객 관리 앱 기획 및 개발', status: '계획중', priority: '중간', manager: '정개발자', startDate: '2025-05-15', endDate: '2025-11-30', progress: 0, tasks: 18, doneTasks: 0, attachments: [] },
+    { id: DB.genId(), name: '서버 클라우드 마이그레이션', desc: '온프레미스 서버를 AWS로 이전', status: '보류', priority: '낮음', manager: '최인프라', startDate: '2025-07-01', endDate: '2025-09-30', progress: 0, tasks: 10, doneTasks: 0, attachments: [] }
   ]);
+
   DB.set('inventory', [
-    { id: DB.genId(), name: '프린터 토너 (흑백)', category: '소모품', unit: '개', quantity: 8, minQty: 5, location: '총무팀 창고', price: 45000, note: '' },
-    { id: DB.genId(), name: 'A4 복사용지 (박스)', category: '소모품', unit: '박스', quantity: 3, minQty: 10, location: '총무팀 창고', price: 32000, note: '재고 부족 주의' },
-    { id: DB.genId(), name: '노트북 (Dell XPS)', category: '비품', unit: '대', quantity: 15, minQty: 5, location: 'IT실', price: 1800000, note: '2023년 구매분' },
-    { id: DB.genId(), name: '사무용 의자', category: '비품', unit: '개', quantity: 30, minQty: 5, location: '창고 B동', price: 280000, note: '에르고노믹 의자' },
-    { id: DB.genId(), name: '형광펜 세트', category: '소모품', unit: '세트', quantity: 2, minQty: 10, location: '비품함', price: 4500, note: '' },
+    { id: DB.genId(), name: '청소기 (무선)', category: '비품', unit: '개', quantity: 8, minQty: 5, location: '창고A-1', price: 450000, note: 'LG 코드제로' },
+    { id: DB.genId(), name: 'A4 복사용지', category: '소모품', unit: '박스', quantity: 3, minQty: 10, location: '사무실 2층', price: 32000, note: '500매×5권' },
+    { id: DB.genId(), name: '노트북 Dell XPS 15', category: '비품', unit: '대', quantity: 15, minQty: 5, location: 'IT실', price: 1800000, note: '2023년식 i7/16GB' },
+    { id: DB.genId(), name: '회의실 의자', category: '비품', unit: '개', quantity: 30, minQty: 5, location: '회의실B', price: 280000, note: '인체공학 설계' },
+    { id: DB.genId(), name: '볼펜 세트', category: '소모품', unit: '박스', quantity: 2, minQty: 10, location: '사무실 3층', price: 4500, note: '12개입×10박스' }
   ]);
-  const today = new Date(), ms = 864e5;
+
+  const sd = new Date(), ms = 864e5;
   DB.set('purchases', [
-    { id: DB.genId(), name: 'A4 복사용지 20박스', dept: '총무팀', requester: '이민수', amount: 640000, category: '소모품', status: '승인', requestDate: fmtDate(new Date(today - 30 * ms)), note: '긴급 요청' },
-    { id: DB.genId(), name: '무선 키보드/마우스 10개', dept: 'IT팀', requester: '김지원', amount: 450000, category: '비품', status: '검토중', requestDate: fmtDate(new Date(today - 10 * ms)), note: '재택근무 지원' },
-    { id: DB.genId(), name: '탕비실 커피머신 교체', dept: '총무팀', requester: '박소연', amount: 380000, category: '비품', status: '반려', requestDate: fmtDate(new Date(today - 45 * ms)), note: '기존 기기 수리 우선' },
-    { id: DB.genId(), name: '청소 용품 세트', dept: '총무팀', requester: '최하나', amount: 120000, category: '소모품', status: '완료', requestDate: fmtDate(new Date(today - 60 * ms)), note: '' },
-    { id: DB.genId(), name: '프로젝터 스크린', dept: '교육팀', requester: '윤대호', amount: 850000, category: '비품', status: '승인', requestDate: fmtDate(new Date(today - 20 * ms)), note: '' },
-    { id: DB.genId(), name: '복합기 잉크 10세트', dept: '영업팀', requester: '강서연', amount: 230000, category: '소모품', status: '검토중', requestDate: fmtDate(new Date(today - 5 * ms)), note: '' },
-    { id: DB.genId(), name: '회의실 화이트보드', dept: '총무팀', requester: '임태준', amount: 560000, category: '비품', status: '승인', requestDate: fmtDate(new Date(today - 90 * ms)), note: '' },
+    { id: DB.genId(), title: 'A4 복사용지 30박스', dept: '총무팀', requester: '김철수', amount: 960000, category: '소모품', status: '승인', requestDate: fmtDate(new Date(sd - 30 * ms)), note: '2분기 재고 확보용' },
+    { id: DB.genId(), title: '회의실 빔프로젝터 5대', dept: 'IT팀', requester: '박영희', amount: 2250000, category: '비품', status: '검토중', requestDate: fmtDate(new Date(sd - 10 * ms)), note: '신규 회의실 설치용' },
+    { id: DB.genId(), title: '사무용 책상 10개', dept: '인사팀', requester: '이민수', amount: 3800000, category: '비품', status: '반려', requestDate: fmtDate(new Date(sd - 45 * ms)), note: '예산 초과로 반려' },
+    { id: DB.genId(), title: '노트북 MacBook Air 3대', dept: 'IT팀', requester: '최진우', amount: 5400000, category: '비품', status: '완료', requestDate: fmtDate(new Date(sd - 60 * ms)), note: '신입 개발자용' },
+    { id: DB.genId(), title: '복합기 토너 15개', dept: '총무팀', requester: '강수민', amount: 450000, category: '소모품', status: '승인', requestDate: fmtDate(new Date(sd - 5 * ms)), note: '본사+지사 통합 발주' }
   ]);
+
   DB.set('disposals', [
-    { id: DB.genId(), name: '구형 데스크탑 PC (5대)', type: '일반폐기', category: '비품', qty: 5, unit: '대', reason: '노후화 성능 저하', method: '공인 업체 폐기', dept: 'IT팀', requester: '최준혁', requestDate: fmtDate(new Date(today - 40 * ms)), completedDate: fmtDate(new Date(today - 28 * ms)), status: '완료', note: '데이터 삭제 확인', attachments: [] },
-    { id: DB.genId(), name: '파손 사무용 의자 (3개)', type: '일반폐기', category: '비품', qty: 3, unit: '개', reason: '파손으로 사용 불가', method: '구청 대형 폐기물 신고', dept: '총무팀', requester: '이수정', requestDate: fmtDate(new Date(today - 15 * ms)), completedDate: '', status: '진행중', note: '', attachments: [] },
-    { id: DB.genId(), name: '프린터 토너 (만료)', type: '빼기폐기', category: '소모품', qty: 4, unit: '개', reason: '유효기간 만료', method: '소각 처리', dept: '총무팀', requester: '김민아', requestDate: fmtDate(new Date(today - 8 * ms)), completedDate: '', status: '대기', note: '', attachments: [] },
+    { id: DB.genId(), name: '노후 PC 5대', type: '비품', category: '비품', qty: 5, unit: '대', reason: '5년 이상 노후화', method: '전문업체 위탁', dept: 'IT팀', requester: '박영희', requestDate: fmtDate(new Date(sd - 40 * ms)), completedDate: fmtDate(new Date(sd - 28 * ms)), status: '완료', note: '데이터 삭제 후 폐기', attachments: [] },
+    { id: DB.genId(), name: '파손된 회의실 의자 8개', type: '비품', category: '비품', qty: 8, unit: '개', reason: '바퀴 손상 및 쿠션 파손', method: '일반폐기', dept: '총무팀', requester: '김철수', requestDate: fmtDate(new Date(sd - 15 * ms)), completedDate: '', status: '진행중', note: '신규 의자 구매 예정', attachments: [] },
+    { id: DB.genId(), name: '유통기한 경과 A4용지 2박스', type: '소모품', category: '소모품', qty: 2, unit: '박스', reason: '장기 보관으로 변색', method: '재활용', dept: '총무팀', requester: '강수민', requestDate: fmtDate(new Date(sd - 8 * ms)), completedDate: '', status: '대기', note: '재활용 센터 수거 대기', attachments: [] },
+    { id: DB.genId(), name: '고장난 복합기 1대', type: '비품', category: '비품', qty: 1, unit: '대', reason: '수리 불가 (메인보드 고장)', method: '전문업체 위탁', dept: 'IT팀', requester: '최진우', requestDate: fmtDate(new Date(sd - 3 * ms)), completedDate: '', status: '대기', note: 'A/S 기간 만료', attachments: [] },
+    { id: DB.genId(), name: '사무용품 일괄 폐기', type: '소모품', category: '소모품', qty: 15, unit: '개', reason: '기능 불량 및 노후화', method: '일반폐기', dept: '총무팀', requester: '이민수', requestDate: fmtDate(new Date(sd - 50 * ms)), completedDate: fmtDate(new Date(sd - 45 * ms)), status: '완료', note: '폐기 완료 및 장부 정리', attachments: [] }
   ]);
-  localStorage.setItem('biz_seeded2', '1');
 }
+
+
+
 
 function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function today() { return fmtDate(new Date()); }
@@ -164,14 +167,9 @@ function navigate(s) {
   if (t) {
     const titleEl = document.getElementById('topbar-title');
     if (titleEl) {
-      titleEl.innerHTML = `
-        ${t.title}
-        <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">
-          ${t.sub}
-        </span>`;
+      titleEl.innerHTML = `${t.title} <span style="font-size:12px;color:var(--text-muted);margin-left:8px">${t.sub}</span>`;
     }
   }
-
   currentSection = s;
   render(s);
 }
@@ -641,64 +639,50 @@ function renderProjects() {
 
   // 5) 렌더
   const grid = document.getElementById('project-grid');
-  document.getElementById('project-count').textContent = `총 ${data.length}개`;
+  document.getElementById('project-count').textContent = data.length;
 
-  grid.innerHTML = data.length
-    ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-size:13px;color:var(--text-muted)">프로젝트 목록</div>
-        <button class="btn btn-primary btn-sm" onclick="openProjModal()">
-          + 새 프로젝트
-        </button>
+  if (!grid) return;
+
+  grid.innerHTML = data.length ? `
+  ${data.map(p => `
+    <div class="project-card">
+      <div class="project-card-header">
+        ${badgeHtml(p.status)}
+        <div class="project-actions">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="openProjModal('${p.id}')" title="프로젝트 수정" data-tooltip>✏️</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="openProjDetail('${p.id}')" title="상세 보기" data-tooltip>🔍</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="delProject('${p.id}')" title="삭제" data-tooltip>🗑</button>
+        </div>
       </div>
-      <div class="projects-grid">
-        ${data.map(p => `
-          <div class="project-card">
-            <div class="project-card-header">
-              <div>${badgeHtml(p.status)} ...</div>
-              <div class="project-actions">
-                <button class="btn btn-secondary btn-sm btn-icon"
-                        onclick="openProjModal('${p.id}')"
-                        title="수정" data-tooltip="수정">✏️</button>
-                <button class="btn btn-secondary btn-sm btn-icon"
-                        onclick="openProjDetail('${p.id}')"
-                        title="상세보기" data-tooltip="상세보기">📄</button>
-                <button class="btn btn-danger btn-sm btn-icon"
-                        onclick="delProject('${p.id}')"
-                        title="삭제" data-tooltip="삭제">🗑️</button>
-              </div>
-            </div>
-            <div class="project-name">${p.name}</div>
-            <div class="project-desc">${p.desc || '설명 없음'}</div>
-            <div class="project-meta">
-              <span>👤 ${p.manager}</span>
-              <span>📅 ${p.startDate}~${p.endDate}</span>
-              <span>📌 ${p.tasks}개(${p.doneTasks}완)</span>
-            </div>
-            <div class="project-progress-label">
-              <span>진행률</span><span>${p.progress}%</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width:${p.progress}%"></div>
-            </div>
-            ${renderAttachmentsStatic(p.attachments || [])}
-            <div class="project-footer">
-              <span style="font-size:12px;color:var(--text-muted)">
-                우선순위: <strong style="color:var(--text-primary)">${p.priority}</strong>
-              </span>
-              <button class="btn btn-primary btn-sm" onclick="quickProgress('${p.id}')">
-                진행률 수정
-              </button>
-            </div>
-          </div>`).join('')}
-      </div>`
-    : `
-      <div style="text-align:center;padding:60px;color:var(--text-muted)">
-        📋 프로젝트가 없습니다.<br>
-        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openProjModal()">
-          + 첫 프로젝트 만들기
-        </button>
-      </div>`;
+      <div class="project-name">${p.name}</div>
+      <div class="project-desc">${p.desc || ''}</div>
+      <div class="project-meta">
+        <span>${p.manager || '-'}</span>
+        <span>${p.startDate || ''} ~ ${p.endDate || ''}</span>
+        <span>${p.tasks || 0}건 / ${p.doneTasks || 0}건</span>
+      </div>
+      <div class="project-progress-label">
+        <span>진행률</span>
+        <span>${p.progress || 0}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${p.progress || 0}%"></div>
+      </div>
+      ${renderAttachmentsStatic(p.attachments || []) || ''}
+      <div class="project-footer">
+        <span style="font-size:12px;color:var(--text-muted)">우선순위: <strong style="color:var(--text-primary)">${p.priority || '-'}</strong></span>
+        <button class="btn btn-primary btn-sm" onclick="quickProgress('${p.id}')">진행률 수정</button>
+      </div>
+    </div>
+  `).join('')}
+` : `
+  <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
+    📋 프로젝트가 없습니다.<br>
+    <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openProjModal()">
+      + 첫 프로젝트 만들기
+    </button>
+  </div>
+`;
 }
 
 // 전역 함수로 분리 (renderProjects 안에 넣지 말 것!)
@@ -2282,5 +2266,10 @@ function saveNotice() {
   if (typeof renderDashboard === 'function') renderDashboard();
   showToast('공지사항이 저장되었습니다.', 'success');
 }
+window.addEventListener('DOMContentLoaded', () => {
+  seedData();         // ← 이 줄
+  navigate('dashboard');
+});
+
 
 
