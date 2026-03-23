@@ -587,6 +587,9 @@ let projWeekOffset = 0;
 let projSelectedMonth = '';
 let currentDetailProjectId = null;
 
+// 화면에 마지막으로 렌더링된 프로젝트 개수
+let lastProjCount = 0;
+
 function renderProjects() {
   const wsId = getCurrentWorkspaceId() || 'default';
 
@@ -638,7 +641,6 @@ function renderProjects() {
   }
 
   // 5) 렌더
-  let lastProjCount = 0;
   const grid = document.getElementById('project-grid');
   document.getElementById('project-count').textContent = data.length;
   lastProjCount = data.length;
@@ -755,64 +757,52 @@ function updateProjFilterBar() {
 
   let data = DB.get('projects') || [];
 
-  // 상태 필터 적용 (현재 목록과 동일 기준)
-  if (projFilter && projFilter !== '전체') {
-    data = data.filter(p => p.status === projFilter);
-  }
+  // 상태 필터는 "전체"일 때만 주/월 카운트 표시
+  if (projFilter === '전체') {
+    const ws = getWeekStart(projWeekOffset);
+    const we = getWeekEnd(projWeekOffset);
 
-  // 프로젝트가 하나도 없으면: 오늘 버튼만
-  if (!data.length) {
+    const weekCount = data.filter(p =>
+      p.startDate && p.startDate >= ws && p.startDate <= we
+    ).length;
+
+    const monthCount = projSelectedMonth
+      ? data.filter(p =>
+        p.startDate && p.startDate.startsWith(projSelectedMonth)
+      ).length
+      : 0;
+
+    bar.innerHTML = `
+      <button class="filter-tab ${projViewMode === 'week' ? 'active' : ''}"
+              onclick="setProjViewMode('week')">
+        주별 <span class="badge badge-blue">${weekCount}</span>
+      </button>
+      <button class="filter-tab ${projViewMode === 'month' ? 'active' : ''}"
+              onclick="setProjViewMode('month')">
+        월별 <span class="badge badge-blue">${monthCount}</span>
+      </button>
+      ${projViewMode === 'week' ? `
+        <button class="btn btn-secondary btn-sm" onclick="projWeekOffset--;renderProjects()">◀</button>
+        <span style="font-size:12px;color:var(--text-muted);padding:0 6px">${ws} ~ ${we}</span>
+        <button class="btn btn-secondary btn-sm" onclick="projWeekOffset++;renderProjects()">▶</button>
+      ` : ''}
+      ${projViewMode === 'month' ? `
+        <input type="month" class="form-control"
+               style="width:140px;padding:4px 8px;font-size:12px"
+               value="${projSelectedMonth || ''}"
+               onchange="projSelectedMonth=this.value;renderProjects()">
+      ` : ''}
+    `;
+  } else {
+    // 전체가 아닐 때는 주/월 숫자 대신 단순 뷰 모드 버튼만
     bar.innerHTML = `
       <button class="filter-tab ${projViewMode === 'today' ? 'active' : ''}"
               onclick="setProjViewMode('today')">
         오늘
       </button>
     `;
-    return;
   }
-
-  // ===== 주별 카운트: [startDate,endDate]가 주간 [ws,we]와 겹치면 포함 =====
-  const ws = getWeekStart(projWeekOffset); // 'YYYY-MM-DD'
-  const we = getWeekEnd(projWeekOffset);   // 'YYYY-MM-DD'
-
-  const weekCount = data.filter(p => {
-    if (!p.startDate && !p.endDate) return false;
-    const s = p.startDate || p.endDate;
-    const e = p.endDate || p.startDate;
-    return e >= ws && s <= we;
-  }).length;
-
-  // ===== 월별 카운트: 화면에 보이는 개수 그대로 사용 =====
-  let monthCount = 0;
-  if (projViewMode === 'month') {
-    monthCount = lastProjCount;
-  }
-
-  bar.innerHTML = `
-    <button class="filter-tab ${projViewMode === 'week' ? 'active' : ''}"
-            onclick="setProjViewMode('week')">
-      주별 <span class="badge badge-blue">${weekCount}</span>
-    </button>
-    <button class="filter-tab ${projViewMode === 'month' ? 'active' : ''}"
-            onclick="setProjViewMode('month')">
-      월별 <span class="badge badge-blue">${monthCount}</span>
-    </button>
-    ${projViewMode === 'week' ? `
-      <button class="btn btn-secondary btn-sm" onclick="projWeekOffset--;renderProjects()">◀</button>
-      <span style="font-size:12px;color:var(--text-muted);padding:0 6px">${ws} ~ ${we}</span>
-      <button class="btn btn-secondary btn-sm" onclick="projWeekOffset++;renderProjects()">▶</button>
-    ` : ''}
-    ${projViewMode === 'month' ? `
-      <input type="month" class="form-control"
-             style="width:140px;padding:4px 8px;font-size:12px"
-             value="${projSelectedMonth || ''}"
-             onchange="projSelectedMonth=this.value;renderProjects()">
-    ` : ''}
-  `;
 }
-
-
-
 
 
 function setProjViewMode(mode) {
