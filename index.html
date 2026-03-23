@@ -153,8 +153,14 @@
             <div class="filter-tab" data-filter="보류" onclick="setProjFilter('보류')">⏸ 보류</div>
           </div>
           <div id="proj-extra-btns" style="display:flex;align-items:center;gap:6px;margin-left:8px"></div>
+          <div style="margin-left:auto">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="proj-search" placeholder="프로젝트 검색" oninput="setProjSearch(this.value)">
+            </div>
+          </div>
         </div>
-        <div id="project-grid"></div>
+        <div id="project-grid" class="projects-grid"></div>
 
       </section>
 

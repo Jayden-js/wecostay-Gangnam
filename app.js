@@ -584,8 +584,9 @@ let projFilter = '전체';
 let projSort = 'none';
 let projViewMode = 'all';
 let projWeekOffset = 0;
-let projSelectedMonth = '';
 let currentDetailProjectId = null;
+let projSearch = '';
+
 
 // 화면에 마지막으로 렌더링된 프로젝트 개수
 let lastProjCount = 0;
@@ -597,6 +598,7 @@ function renderProjects() {
   let data = DB.get('projects') || [];
 
   const today = getTodayKST();
+
 
   // 2) 상태 필터 + 오늘 보기
   if (projFilter !== '전체') {
@@ -612,84 +614,123 @@ function renderProjects() {
     }
   }
 
-  // 3) 전체 탭 주별/월별 필터
-  if (projFilter === '전체') {
-    if (projViewMode === 'week') {
-      const weekStart = getWeekStart(projWeekOffset);
-      const weekEnd = getWeekEnd(projWeekOffset);
-      data = data.filter(p =>
-        p.startDate &&
-        p.startDate >= weekStart &&
-        p.startDate <= weekEnd
-      );
-    } else if (projViewMode === 'month' && projSelectedMonth) {
-      const m = projSelectedMonth;
-      data = data.filter(p => p.startDate && p.startDate.startsWith(m));
-    }
+  // 3) 전체 탭 주별 필터만
+  if (projFilter === '전체' && projViewMode === 'week') {
+    const weekStart = getWeekStart(projWeekOffset);
+    const weekEnd = getWeekEnd(projWeekOffset);
+    data = data.filter(p =>
+      p.startDate &&
+      p.startDate >= weekStart &&
+      p.startDate <= weekEnd
+    );
   }
 
-  // 4) 정렬
+  // 4) 검색 필터
+  if (projSearch) {
+    const s = String(projSearch || '').toLowerCase();
+
+    data = data.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      const manager = (p.manager || '').toLowerCase();
+      const desc = (p.desc || '').toLowerCase();
+
+      return name.includes(s) || manager.includes(s) || desc.includes(s);
+    });
+  }
+
+
+
+  // 5) 정렬
   if (projSort === 'asc') {
     data = [...data].sort((a, b) =>
       (a.startDate || '').localeCompare(b.startDate || '')
     );
   } else if (projSort === 'desc') {
-    data = [...data].sort((a.startDate || '').localeCompare(b.startDate || ''));
     data = [...data].sort((a, b) =>
       (b.startDate || '').localeCompare(a.startDate || '')
     );
   }
 
-  // 5) 렌더
+
+  // 6) 렌더
+  console.log('final data length =', data.length);
+  console.log('first project =', data[0]);
+
   const grid = document.getElementById('project-grid');
   document.getElementById('project-count').textContent = data.length;
   lastProjCount = data.length;
 
   if (!grid) return;
 
+  // p가 깨져 있어도 터지지 않게 기본값 세팅
   grid.innerHTML = data.length ? `
-  ${data.map(p => `
-    <div class="project-card">
-      <div class="project-card-header">
-        ${badgeHtml(p.status)}
-        <div class="project-actions">
-  <button class="btn btn-secondary btn-sm btn-icon project-action-btn"
-          onclick="openProjModal('${p.id}')">
-    ✏️ <span class="action-label">수정</span>
-  </button>
-  <button class="btn btn-secondary btn-sm btn-icon project-action-btn"
-          onclick="openProjDetail('${p.id}')">
-    🔍 <span class="action-label">상세</span>
-  </button>
-  <button class="btn btn-danger btn-sm btn-icon project-action-btn"
-          onclick="delProject('${p.id}')">
-    🗑 <span class="action-label">삭제</span>
-  </button>
-</div>
+  ${data.map(p => {
+    const proj = p || {};
 
+    const id = proj.id || '';
+    const name = proj.name || '';
+    const desc = proj.desc || '';
+    const status = proj.status || '';
+    const priority = proj.priority || '-';
+    const manager = proj.manager || '-';
+    const startDate = proj.startDate || '';
+    const endDate = proj.endDate || '';
+    const tasks = proj.tasks || 0;
+    const doneTasks = proj.doneTasks || 0;
+    const progress = proj.progress ?? 0;
+    const atts = Array.isArray(proj.attachments) ? proj.attachments : [];
 
+    return `
+      <div class="project-card">
+        <div class="project-card-header">
+          ${badgeHtml(status)}
+          <div class="project-actions">
+            <button class="btn btn-secondary btn-sm btn-icon project-action-btn"
+                    onclick="openProjModal('${id}')">
+              ✏️ <span class="action-label">수정</span>
+            </button>
+            <button class="btn btn-secondary btn-sm btn-icon project-action-btn"
+                    onclick="openProjDetail('${id}')">
+              🔍 <span class="action-label">상세</span>
+            </button>
+            <button class="btn btn-danger btn-sm btn-icon project-action-btn"
+                    onclick="delProject('${id}')">
+              🗑 <span class="action-label">삭제</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="project-name">${name}</div>
+        <div class="project-desc">${desc}</div>
+
+        <div class="project-meta">
+          <span>${manager}</span>
+          <span>${startDate} ~ ${endDate}</span>
+          <span>${tasks}건 / ${doneTasks}건</span>
+        </div>
+
+        <div class="project-progress-label">
+          <span>진행률</span>
+          <span>${progress}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${progress}%"></div>
+        </div>
+
+        ${renderAttachmentsStatic(atts) || ''}
+
+        <div class="project-footer">
+          <span style="font-size:12px;color:var(--text-muted)">
+            우선순위:
+            <strong style="color:var(--text-primary)">${priority}</strong>
+          </span>
+          <button class="btn btn-primary btn-sm" onclick="quickProgress('${id}')">
+            진행률 수정
+          </button>
+        </div>
       </div>
-      <div class="project-name">${p.name}</div>
-      <div class="project-desc">${p.desc || ''}</div>
-      <div class="project-meta">
-        <span>${p.manager || '-'}</span>
-        <span>${p.startDate || ''} ~ ${p.endDate || ''}</span>
-        <span>${p.tasks || 0}건 / ${p.doneTasks || 0}건</span>
-      </div>
-      <div class="project-progress-label">
-        <span>진행률</span>
-        <span>${p.progress || 0}%</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" style="width:${p.progress || 0}%"></div>
-      </div>
-      ${renderAttachmentsStatic(p.attachments || []) || ''}
-      <div class="project-footer">
-        <span style="font-size:12px;color:var(--text-muted)">우선순위: <strong style="color:var(--text-primary)">${p.priority || '-'}</strong></span>
-        <button class="btn btn-primary btn-sm" onclick="quickProgress('${p.id}')">진행률 수정</button>
-      </div>
-    </div>
-  `).join('')}
+    `;
+  }).join('')}
 ` : `
   <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">
     📋 프로젝트가 없습니다.<br>
@@ -698,6 +739,12 @@ function renderProjects() {
     </button>
   </div>
 `;
+}
+
+
+function setProjSearch(q) {
+  projSearch = q.trim().toLowerCase();
+  renderProjects();
 }
 
 // 전역 함수로 분리 (renderProjects 안에 넣지 말 것!)
@@ -750,78 +797,67 @@ function getWeekEnd(offset) {
   d.setUTCDate(d.getUTCDate() + 6);
   return d.toISOString().split('T')[0];
 }
-
 function updateProjFilterBar() {
   const bar = document.getElementById('proj-extra-btns');
   if (!bar) return;
 
   let data = DB.get('projects') || [];
 
-  // 상태 필터는 "전체"일 때만 주/월 카운트 표시
-  if (projFilter === '전체') {
-    const ws = getWeekStart(projWeekOffset);
-    const we = getWeekEnd(projWeekOffset);
-
-    const weekCount = data.filter(p =>
-      p.startDate && p.startDate >= ws && p.startDate <= we
-    ).length;
-
-    const monthCount = projSelectedMonth
-      ? data.filter(p =>
-        p.startDate && p.startDate.startsWith(projSelectedMonth)
-      ).length
-      : 0;
-
-    bar.innerHTML = `
-      <button class="filter-tab ${projViewMode === 'week' ? 'active' : ''}"
-              onclick="setProjViewMode('week')">
-        주별 <span class="badge badge-blue">${weekCount}</span>
-      </button>
-      <button class="filter-tab ${projViewMode === 'month' ? 'active' : ''}"
-              onclick="setProjViewMode('month')">
-        월별 <span class="badge badge-blue">${monthCount}</span>
-      </button>
-      ${projViewMode === 'week' ? `
-        <button class="btn btn-secondary btn-sm" onclick="projWeekOffset--;renderProjects()">◀</button>
-        <span style="font-size:12px;color:var(--text-muted);padding:0 6px">${ws} ~ ${we}</span>
-        <button class="btn btn-secondary btn-sm" onclick="projWeekOffset++;renderProjects()">▶</button>
-      ` : ''}
-      ${projViewMode === 'month' ? `
-        <input type="month" class="form-control"
-               style="width:140px;padding:4px 8px;font-size:12px"
-               value="${projSelectedMonth || ''}"
-               onchange="projSelectedMonth=this.value;renderProjects()">
-      ` : ''}
-    `;
-  } else {
-    // 전체가 아닐 때는 주/월 숫자 대신 단순 뷰 모드 버튼만
-    bar.innerHTML = `
-      <button class="filter-tab ${projViewMode === 'today' ? 'active' : ''}"
-              onclick="setProjViewMode('today')">
-        오늘
-      </button>
-    `;
+  // 상태 필터 적용
+  if (projFilter && projFilter !== '전체') {
+    data = data.filter(p => p.status === projFilter);
   }
+
+  if (!data.length) {
+    bar.innerHTML = '';
+    return;
+  }
+
+  const ws = getWeekStart(projWeekOffset);
+  const we = getWeekEnd(projWeekOffset);
+
+  const weekCount = data.filter(p =>
+    p.startDate && p.startDate >= ws && p.startDate <= we
+  ).length;
+
+  bar.innerHTML = `
+    <!-- 주별 토글 버튼 -->
+    <button class="filter-tab ${projViewMode === 'week' ? 'active' : ''}"
+            onclick="setProjViewMode('week')">
+      주별 <span class="badge badge-blue">${weekCount}</span>
+    </button>
+
+    <!-- 주 이동 버튼: 항상 보여주기 -->
+    <button class="btn btn-secondary btn-sm"
+            onclick="projWeekOffset--;renderProjects()">
+      ◀
+    </button>
+    <span style="font-size:12px;color:var(--text-muted);padding:0 6px">
+      ${ws} ~ ${we}
+    </span>
+    <button class="btn btn-secondary btn-sm"
+            onclick="projWeekOffset++;renderProjects()">
+      ▶
+    </button>
+  `;
 }
+
+
+
+
 
 
 function setProjViewMode(mode) {
-  projViewMode = mode;
-
-  if (mode === 'month') {
-    if (!projSelectedMonth) {
-      const today = getTodayKST();       // '2026-03-23' 처럼 온다고 가정
-      projSelectedMonth = today.slice(0, 7); // '2026-03'
-    }
-  } else if (mode === 'week') {
-    projWeekOffset = 0;
+  if (mode === 'week') {
+    projViewMode = 'week';
+    projWeekOffset = 0;        // 주별 들어갈 때 현재 주 기준
   } else {
+    projViewMode = 'all';      // 전체 보기
     projWeekOffset = 0;
-    projSelectedMonth = null;
   }
-
   renderProjects();
 }
+
 
 function setProjFilter(f) {
   projFilter = f;
